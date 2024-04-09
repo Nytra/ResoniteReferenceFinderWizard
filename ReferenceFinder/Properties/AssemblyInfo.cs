@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("ReferenceFinder")]
+[assembly: AssemblyTitle("ReferenceFinderWizard")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Nytra")]
-[assembly: AssemblyProduct("ReferenceFinder")]
+[assembly: AssemblyProduct("ReferenceFinderWizard")]
 [assembly: AssemblyCopyright("Copyright © Nytra 2024")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

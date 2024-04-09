@@ -4,6 +4,7 @@ using FrooxEngine;
 using FrooxEngine.UIX;
 using Elements.Core;
 using Elements.Assets;
+using ResoniteHotReloadLib;
 
 namespace ReferenceFinder
 {
@@ -11,18 +12,29 @@ namespace ReferenceFinder
 	{
 		public override string Name => "Reference Finder Wizard";
 		public override string Author => "Nytra";
-		public override string Version => "1.1.2";
+		public override string Version => "1.0.0";
 		public override string Link => "https://github.com/Nytra/ResoniteReferenceFinderWizard";
 
 		const string WIZARD_TITLE = "Reference Finder Wizard (Mod)";
 
 		public override void OnEngineInit()
 		{
+			HotReloader.RegisterForHotReload(this);
 			Engine.Current.RunPostInit(AddMenuOption);
 		}
-		void AddMenuOption()
+		static void AddMenuOption()
 		{
 			DevCreateNewForm.AddAction("Editor", WIZARD_TITLE, (x) => ReferenceFinderWizard.GetOrCreateWizard(x));
+		}
+
+		static void BeforeHotReload()
+		{
+			HotReloader.RemoveMenuOption("Editor", WIZARD_TITLE);
+		}
+
+		static void OnHotReload(ResoniteMod modInstance)
+		{
+			AddMenuOption();
 		}
 
 		class ReferenceFinderWizard
@@ -40,6 +52,8 @@ namespace ReferenceFinder
 			readonly ValueField<bool> processContainedComponents;
 			readonly ValueField<bool> processChildrenSlots;
 			readonly ValueField<bool> ignoreNonPersistent;
+			readonly ValueField<bool> ignoreSelfReferences;
+			readonly ValueField<bool> ignoreSlotParentRef;
 			readonly ValueField<bool> showDetails;
 			//readonly ValueField<bool> confirmDestroy;
 			//readonly ValueField<string> nameField;
@@ -199,9 +213,15 @@ namespace ReferenceFinder
 				//searchRoot.Reference.Value = WizardSlot.World.RootSlot.ReferenceID;
 				elementField = Data.AddSlot("elementField").AttachComponent<ReferenceField<IWorldElement>>();
 				processWorkerSyncMembers = Data.AddSlot("processWorkerSyncMembers").AttachComponent<ValueField<bool>>();
+				processWorkerSyncMembers.Value.Value = true;
 				processContainedComponents = Data.AddSlot("processContainedComponents").AttachComponent<ValueField<bool>>();
+				processContainedComponents.Value.Value = true;
 				processChildrenSlots = Data.AddSlot("processChildrenSlots").AttachComponent<ValueField<bool>>();
+				processChildrenSlots.Value.Value = true;
 				ignoreNonPersistent = Data.AddSlot("ignoreNonPersistent").AttachComponent<ValueField<bool>>();
+				ignoreSelfReferences = Data.AddSlot("ignoreSelfReferences").AttachComponent<ValueField<bool>>();
+				ignoreSelfReferences.Value.Value = true;
+				ignoreSlotParentRef = Data.AddSlot("ignoreSlotParentRef").AttachComponent<ValueField<bool>>();
 				//ignoreGenericTypes = Data.AddSlot("ignoreGenericTypes").AttachComponent<ValueField<bool>>();
 				showDetails = Data.AddSlot("showDetails").AttachComponent<ValueField<bool>>();
 				//confirmDestroy = Data.AddSlot("confirmDestroy").AttachComponent<ValueField<bool>>();
@@ -249,7 +269,11 @@ namespace ReferenceFinder
 
 				UI.HorizontalElementWithLabel("Process contained components:", 0.942f, () => UI.BooleanMemberEditor(processContainedComponents.Value));
 
-				UI.HorizontalElementWithLabel("Process worker sync members:", 0.942f, () => UI.BooleanMemberEditor(processWorkerSyncMembers.Value));
+				UI.HorizontalElementWithLabel("Process sync members:", 0.942f, () => UI.BooleanMemberEditor(processWorkerSyncMembers.Value));
+
+				UI.HorizontalElementWithLabel("Ignore references contained within self:", 0.942f, () => UI.BooleanMemberEditor(ignoreSelfReferences.Value));
+
+				UI.HorizontalElementWithLabel("Ignore slot parent references:", 0.942f, () => UI.BooleanMemberEditor(ignoreSlotParentRef.Value));
 
 				UI.HorizontalElementWithLabel("Ignore non persistent references:", 0.942f, () => UI.BooleanMemberEditor(ignoreNonPersistent.Value));
 
@@ -336,8 +360,8 @@ namespace ReferenceFinder
 				results.References.Clear();
 
 				var elements = new HashSet<IWorldElement>();
-				RecursiveGetSearchElements(elements, elementField.Reference.Target);
-				FindReferencesFromHashSet(elements, out bool stoppedEarly);
+				GetSearchElements(elements, elementField.Reference.Target);
+				FindReferences(elements, out bool stoppedEarly);
 
 				if (stoppedEarly)
 				{
@@ -359,37 +383,62 @@ namespace ReferenceFinder
 				searchButton.Enabled = true;
 			}
 
-			void RecursiveGetSearchElements(HashSet<IWorldElement> elements, IWorldElement target)
+			void GetSearchElements(HashSet<IWorldElement> elements, IWorldElement target)
 			{
 				elements.Add(target);
 				if (processChildrenSlots.Value && target is Slot slot)
 				{
 					foreach (Slot childSlot in slot.Children)
 					{
-						RecursiveGetSearchElements(elements, childSlot);
+						GetSearchElements(elements, childSlot);
 					}
 				}
 				if (processWorkerSyncMembers.Value && target is Worker worker)
 				{
 					foreach (ISyncMember syncMember in worker.SyncMembers)
 					{
-						RecursiveGetSearchElements(elements, syncMember);
+						GetSearchElements(elements, syncMember);
 					}
 				}
 				if (processContainedComponents.Value && target is ContainerWorker<Component> containerWorker)
 				{
 					foreach (Component component in containerWorker.Components)
 					{
-						RecursiveGetSearchElements(elements, component);
+						GetSearchElements(elements, component);
 					}
 				}
 				else if (processContainedComponents.Value && target is ContainerWorker<UserComponent> containerWorker2)
 				{
 					foreach (UserComponent userComponent in containerWorker2.Components)
 					{
-						RecursiveGetSearchElements(elements, userComponent);
+						GetSearchElements(elements, userComponent);
 					}
 				}
+			}
+
+			void FindReferences(HashSet<IWorldElement> elements, out bool stoppedEarly)
+			{
+				bool stoppedEarlyInternal = false;
+				WizardSlot.World.ForeachWorldElement((ISyncRef syncRef) =>
+				{
+					if (results.References.Count >= maxResults.Value.Value)
+					{
+						stoppedEarlyInternal = true;
+						return;
+					}
+					if (elements.Contains(syncRef.Target)
+						&& !syncRef.Target.IsLocalElement
+						&& !syncRef.IsLocalElement
+						&& syncRef != elementField.Reference
+						&& syncRef.Parent != results.References
+						&& !(ignoreNonPersistent.Value && !isElementPersistent(syncRef))
+						&& !(ignoreSlotParentRef.Value && (syncRef.Parent is Slot s && s.ParentReference == syncRef))
+						&& !(ignoreSelfReferences.Value && syncRef.IsChildOfElement(elementField.Reference.Target)))
+					{
+						results.References.Add(syncRef);
+					}
+				});
+				stoppedEarly = stoppedEarlyInternal;
 			}
 
 			string GetAllText()
@@ -404,177 +453,17 @@ namespace ReferenceFinder
 
 			string GetText(ISyncRef syncRef)
 			{
-				return $"<color=green>{syncRef.Target.Name}</color>" + $" (Type: <color=yellow>{syncRef.Target.GetType().GetNiceName()}</color>)" + " found in " + $"<color=green>{syncRef.Name}</color>" + $" (Type: <color=yellow>{syncRef.GetType().GetNiceName()}</color>" + " at " + $"<color=cyan>{GetSlotParentHierarchyString(syncRef.FindNearestParent<Slot>())}</color>" + "\n";
+				return GetElementText(syncRef.Target, showParent: true) + " referenced by " + GetElementText(syncRef, showParent: true) + " at " + $"<color=hero.cyan>{GetSlotParentHierarchyString(syncRef.FindNearestParent<Slot>())}</color>" + "\n";
 			}
 
-			void FindReferences(IWorldElement target, out bool stoppedEarly)
+			string GetElementText(IWorldElement element, bool showType = false, bool showParent = false)
 			{
-				bool stoppedEarlyInternal = false;
-				WizardSlot.World.ForeachWorldElement((ISyncRef syncRef) =>
-				{
-					if (results.References.Count >= maxResults.Value.Value)
-					{
-						stoppedEarlyInternal = true;
-						return;
-					}
-					if (syncRef.Target == target && !target.IsLocalElement && !syncRef.IsLocalElement && syncRef != elementField.Reference && syncRef.Parent != results.References)
-					{
-						results.References.Add(syncRef);
-					}
-				});
-				stoppedEarly = stoppedEarlyInternal;
+				string typeText = $"<color=hero.yellow>{element.GetType().GetNiceName()}</color>";
+				string nameText = $"<color=hero.green>{element.Name}</color>";
+				string parentText = $"<color=hero.purple>{element.Parent.Name}</color>";
+				//return (showType ? typeText + " " : "") + nameText + (showParent ? " under " + parentText : "");
+				return (showType ? typeText + " " : "" + (showParent ? parentText + "." : "") + nameText);
 			}
-
-			void FindReferencesFromHashSet(HashSet<IWorldElement> elements, out bool stoppedEarly)
-			{
-				bool stoppedEarlyInternal = false;
-				WizardSlot.World.ForeachWorldElement((ISyncRef syncRef) =>
-				{
-					if (results.References.Count >= maxResults.Value.Value)
-					{
-						stoppedEarlyInternal = true;
-						return;
-					}
-					if (elements.Contains(syncRef.Target) &&
-						!syncRef.Target.IsLocalElement &&
-						!syncRef.IsLocalElement &&
-						syncRef != elementField.Reference &&
-						syncRef.Parent != results.References &&
-						(!ignoreNonPersistent.Value || isElementPersistent(syncRef)))
-					{
-						results.References.Add(syncRef);
-					}
-				});
-				stoppedEarly = stoppedEarlyInternal;
-			}
-
-			//void EnablePressed(IButton button, ButtonEventData eventData)
-			//{
-			//    if (!ValidateWizard()) return;
-
-			//    if (!allowChanges.Value.Value)
-			//    {
-			//        UpdateStatusText("You must allow changes!");
-			//        return;
-			//    }
-
-			//    if (results.References.Count == 0)
-			//    {
-			//        UpdateStatusText("No search results to process!");
-			//        return;
-			//    }
-
-			//    performingOperations = true;
-			//    enableButton.Enabled = false;
-
-			//    int count = 0;
-			//    WizardSlot.World.RunSynchronously(() =>
-			//    {
-			//        WizardSlot.World.BeginUndoBatch($"Enable {results.References.Count} Components");
-			//        foreach (Component c in results.References)
-			//        {
-			//            if (c != null)
-			//            {
-			//                c.EnabledField.UndoableSet(true);
-			//                count++;
-			//            }
-			//        }
-			//        WizardSlot.World.EndUndoBatch();
-
-			//        UpdateStatusText($"Enabled {count} matching components.");
-
-			//        performingOperations = false;
-			//        enableButton.Enabled = true;
-			//    });
-			//}
-
-			//void DisablePressed(IButton button, ButtonEventData eventData)
-			//{
-			//    if (!ValidateWizard()) return;
-
-			//    if (!allowChanges.Value.Value)
-			//    {
-			//        UpdateStatusText("You must allow changes!");
-			//        return;
-			//    }
-
-			//    if (results.References.Count == 0)
-			//    {
-			//        UpdateStatusText("No search results to process!");
-			//        return;
-			//    }
-
-			//    performingOperations = true;
-			//    disableButton.Enabled = false;
-
-			//    int count = 0;
-			//    WizardSlot.World.RunSynchronously(() =>
-			//    {
-			//        WizardSlot.World.BeginUndoBatch($"Disable {results.References.Count} Components");
-			//        foreach (Component c in results.References)
-			//        {
-			//            if (c != null)
-			//            {
-			//                c.EnabledField.UndoableSet(false);
-			//                count++;
-			//            }
-			//        }
-			//        WizardSlot.World.EndUndoBatch();
-
-			//        UpdateStatusText($"Disabled {count} matching components.");
-
-			//        performingOperations = false;
-			//        disableButton.Enabled = true;
-			//    });
-			//}
-
-			//void DestroyPressed(IButton button, ButtonEventData eventData)
-			//{
-			//    if (!ValidateWizard()) return;
-
-			//    if (!allowChanges.Value.Value)
-			//    {
-			//        UpdateStatusText("You must allow changes!");
-			//        return;
-			//    }
-
-			//    if (!confirmDestroy.Value.Value)
-			//    {
-			//        UpdateStatusText("You must confirm destroy!");
-			//        return;
-			//    }
-
-			//    if (results.References.Count == 0)
-			//    {
-			//        UpdateStatusText("No search results to process!");
-			//        return;
-			//    }
-
-			//    performingOperations = true;
-			//    destroyButton.Enabled = false;
-
-			//    int count = 0;
-			//    WizardSlot.World.RunSynchronously(() =>
-			//    {
-			//        WizardSlot.World.BeginUndoBatch($"Destroy {results.References.Count} Components");
-			//        foreach (Component c in results.References)
-			//        {
-			//            if (c != null)
-			//            {
-			//                c.UndoableDestroy();
-			//                count++;
-			//            }
-			//        }
-			//        WizardSlot.World.EndUndoBatch();
-
-			//        UpdateStatusText($"Destroyed {count} matching components.");
-
-			//        results.References.Clear();
-			//        performingOperations = false;
-			//        destroyButton.Enabled = true;
-			//        confirmDestroy.Value.Value = false;
-			//    });
-			//}
 		}
 	}
 }
