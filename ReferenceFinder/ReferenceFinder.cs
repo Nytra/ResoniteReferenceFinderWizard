@@ -357,37 +357,37 @@ namespace ReferenceFinder
 
 				performingOperations = false;
 				searchButton.Enabled = true;
+			}
 
-				void RecursiveGetSearchElements(HashSet<IWorldElement> elements, IWorldElement target)
+			void RecursiveGetSearchElements(HashSet<IWorldElement> elements, IWorldElement target)
+			{
+				elements.Add(target);
+				if (processChildrenSlots.Value && target is Slot slot)
 				{
-					elements.Add(target);
-					if (processChildrenSlots.Value && target is Slot slot)
+					foreach (Slot childSlot in slot.Children)
 					{
-						foreach (Slot childSlot in slot.Children)
-						{
-							RecursiveGetSearchElements(elements, childSlot);
-						}
+						RecursiveGetSearchElements(elements, childSlot);
 					}
-					if (processWorkerSyncMembers.Value && target is Worker worker)
+				}
+				if (processWorkerSyncMembers.Value && target is Worker worker)
+				{
+					foreach (ISyncMember syncMember in worker.SyncMembers)
 					{
-						foreach (ISyncMember syncMember in worker.SyncMembers)
-						{
-							RecursiveGetSearchElements(elements, syncMember);
-						}
+						RecursiveGetSearchElements(elements, syncMember);
 					}
-					if (processContainedComponents.Value && target is ContainerWorker<Component> containerWorker)
+				}
+				if (processContainedComponents.Value && target is ContainerWorker<Component> containerWorker)
+				{
+					foreach (Component component in containerWorker.Components)
 					{
-						foreach (Component component in containerWorker.Components)
-						{
-							RecursiveGetSearchElements(elements, component);
-						}
+						RecursiveGetSearchElements(elements, component);
 					}
-					else if (processContainedComponents.Value && target is ContainerWorker<UserComponent> containerWorker2)
+				}
+				else if (processContainedComponents.Value && target is ContainerWorker<UserComponent> containerWorker2)
+				{
+					foreach (UserComponent userComponent in containerWorker2.Components)
 					{
-						foreach (UserComponent userComponent in containerWorker2.Components)
-						{
-							RecursiveGetSearchElements(elements, userComponent);
-						}
+						RecursiveGetSearchElements(elements, userComponent);
 					}
 				}
 			}
@@ -404,7 +404,7 @@ namespace ReferenceFinder
 
 			string GetText(ISyncRef syncRef)
 			{
-				return $"<color=green>{syncRef.Target.Name}</color>" + $" (Type: <color=pink>{syncRef.Target.GetType().GetNiceName()}</color>)" + " found in " + $"<color=green>{syncRef.Name}</color>" + $" (Type: <color=pink>{syncRef.GetType().GetNiceName()}</color>" + " at " + $"<color=cyan>{GetSlotParentHierarchyString(syncRef.FindNearestParent<Slot>())}</color>" + "\n";
+				return $"<color=green>{syncRef.Target.Name}</color>" + $" (Type: <color=yellow>{syncRef.Target.GetType().GetNiceName()}</color>)" + " found in " + $"<color=green>{syncRef.Name}</color>" + $" (Type: <color=yellow>{syncRef.GetType().GetNiceName()}</color>" + " at " + $"<color=cyan>{GetSlotParentHierarchyString(syncRef.FindNearestParent<Slot>())}</color>" + "\n";
 			}
 
 			void FindReferences(IWorldElement target, out bool stoppedEarly)
