@@ -53,7 +53,7 @@ namespace ReferenceFinder
 			readonly ValueField<bool> processChildrenSlots;
 			readonly ValueField<bool> ignoreNonPersistent;
 			readonly ValueField<bool> ignoreSelfReferences;
-			readonly ValueField<bool> ignoreSlotParentRef;
+			//readonly ValueField<bool> ignoreSlotParentRef;
 			readonly ValueField<bool> showDetails;
 			readonly ValueField<int> maxResults;
 
@@ -324,7 +324,7 @@ namespace ReferenceFinder
 						&& syncRef != elementField.Reference
 						&& syncRef.Parent != results.References
 						&& !(ignoreNonPersistent.Value && !isElementPersistent(syncRef))
-						&& !(ignoreSlotParentRef.Value && (syncRef.Parent is Slot s && s.ParentReference == syncRef))
+						//&& !(ignoreSlotParentRef.Value && (syncRef.Parent is Slot s && s.ParentReference == syncRef))
 						&& !(ignoreSelfReferences.Value && syncRef.IsChildOfElement(elementField.Reference.Target)))
 					{
 						results.References.Add(syncRef);
