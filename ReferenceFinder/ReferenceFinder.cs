@@ -153,7 +153,6 @@ namespace ReferenceFinder
 				processChildrenSlots.Value.Value = true;
 				ignoreNonPersistent = Data.AddSlot("ignoreNonPersistent").AttachComponent<ValueField<bool>>();
 				ignoreSelfReferences = Data.AddSlot("ignoreSelfReferences").AttachComponent<ValueField<bool>>();
-				ignoreSelfReferences.Value.Value = true;
 				//ignoreSlotParentRef = Data.AddSlot("ignoreSlotParentRef").AttachComponent<ValueField<bool>>();
 				showDetails = Data.AddSlot("showDetails").AttachComponent<ValueField<bool>>();
 				maxResults = Data.AddSlot("maxResults").AttachComponent<ValueField<int>>();
@@ -191,11 +190,11 @@ namespace ReferenceFinder
 
 				UI.HorizontalElementWithLabel("Process sync members:", 0.942f, () => UI.BooleanMemberEditor(processWorkerSyncMembers.Value));
 
-				UI.HorizontalElementWithLabel("Ignore references contained within self:", 0.942f, () => UI.BooleanMemberEditor(ignoreSelfReferences.Value));
+				UI.HorizontalElementWithLabel("Ignore references which are children of the element:", 0.942f, () => UI.BooleanMemberEditor(ignoreSelfReferences.Value));
 
 				//UI.HorizontalElementWithLabel("Ignore slot parent references:", 0.942f, () => UI.BooleanMemberEditor(ignoreSlotParentRef.Value));
 
-				UI.HorizontalElementWithLabel("Ignore non persistent references:", 0.942f, () => UI.BooleanMemberEditor(ignoreNonPersistent.Value));
+				UI.HorizontalElementWithLabel("Ignore non-persistent references:", 0.942f, () => UI.BooleanMemberEditor(ignoreNonPersistent.Value));
 
 				UI.Spacer(24f);
 
@@ -345,16 +344,51 @@ namespace ReferenceFinder
 
 			string GetText(ISyncRef syncRef)
 			{
-				return GetElementText(syncRef.Target, showParent: true) + " referenced by " + GetElementText(syncRef, showParent: true) + " at " + $"<color=hero.cyan>{GetSlotParentHierarchyString(syncRef.FindNearestParent<Slot>())}</color>" + "\n";
+				string pathText = $"{GetSlotParentHierarchyString(syncRef.FindNearestParent<Slot>())}";
+				return "* " + GetElementText(syncRef.Target) + " is referenced by " + GetElementText(syncRef) + $" (<color=hero.cyan>{StripTags(pathText)}</color>)" + "\n";
+				//return GetElementText(syncRef.Target, showParent: true) + " referenced by " + GetElementText(syncRef, showParent: true) + " on " + $"<color=hero.cyan>{GetSlotParentHierarchyString(syncRef.FindNearestParent<Slot>())}</color>" + "\n";
 			}
 
-			string GetElementText(IWorldElement element, bool showType = false, bool showParent = false)
+			string StripTags(string s)
 			{
-				string typeText = $"<color=hero.yellow>{element.GetType().GetNiceName()}</color>";
-				string nameText = $"<color=hero.green>{element.Name}</color>";
-				string parentText = $"<color=hero.purple>{element.Parent.Name}</color>";
-				//return (showType ? typeText + " " : "") + nameText + (showParent ? " under " + parentText : "");
-				return (showType ? typeText + " " : "" + (showParent ? parentText + "." : "") + nameText);
+				if (string.IsNullOrEmpty(s))
+				{
+					return s;
+				}
+				return new StringRenderTree(s).GetRawString();
+			}
+
+			string GetElementText(IWorldElement element, bool showElementType = false, bool showLabels = false)
+			{
+				//string typeText = $"<color=hero.yellow>{element.GetType().GetNiceName()}</color>";
+				//string nameText = $"Element: <color=hero.green>{element.Name}</color>";
+				//string parentText = $"Parent: <color=hero.purple>{element.Parent.Name}</color>";
+				//return (showType ? typeText + " " : "") + nameText + (showParent ? " " + parentText : "");
+				//return (showType ? typeText + " " : "" + (showParent ? parentText + "." : "") + nameText);
+
+				Component component = element.FindNearestParent<Component>();
+				Slot slot = component?.Slot ?? element.FindNearestParent<Slot>();
+				string value;
+				if (element is Slot slot2)
+				{
+					value = $"<color=hero.yellow>{(showLabels ? "Slot: " : "")}{StripTags(slot2.Name)}</color>";
+					return value;
+				}
+				else
+				{
+					string arg = ((component != null && component != element) ? ($"on <color=hero.purple>{(showLabels ? "Component: " : "")}" + component.Name + $"</color> on <color=hero.yellow>{(showLabels ? "Slot: " : "")}" + StripTags(slot.Name) + "</color>") : ((slot == null) ? "" : ($"on <color=hero.yellow>{(showLabels ? "Slot: " : "")}" + StripTags(slot.Name) + "</color>")));
+					string elemPrefix = "<color=hero.green>";
+					if (element is Component component2)
+					{
+						elemPrefix = $"<color=hero.purple>{(showLabels ? "Component: " : "")}";
+					}
+					else if (showElementType)
+					{
+						elemPrefix += element.GetType().GetNiceName() + ": ";
+					}
+					value = ((!(element is SyncElement syncElement)) ? $"{elemPrefix}{element.Name ?? element.GetType().Name}</color> {arg}" : $"{elemPrefix}{syncElement.NameWithPath}</color> {arg}");
+					return value;
+				}
 			}
 		}
 	}
