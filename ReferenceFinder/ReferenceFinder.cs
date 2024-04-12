@@ -58,6 +58,7 @@ namespace ReferenceFinder
 			readonly ValueField<bool> ignoreSelfReferences;
 			//readonly ValueField<bool> ignoreSlotParentRef;
 			readonly ValueField<bool> showDetails;
+			readonly ValueField<bool> showElementType;
 			readonly ValueField<int> maxResults;
 
 			readonly ReferenceMultiplexer<ISyncRef> results;
@@ -160,6 +161,12 @@ namespace ReferenceFinder
 
 			string GetElementParentHierarchyString(IWorldElement element, bool reverse=true)
 			{
+				string nameOverride = null;
+				if (element is User user)
+				{
+					nameOverride = user.UserName;
+				}
+
 				string str;
 				List<IWorldElement> parents = new List<IWorldElement>();
 
@@ -189,18 +196,18 @@ namespace ReferenceFinder
 					}
 					if (first)
 					{
-						str += element.Name;
+						str += nameOverride ?? element.Name;
 						first = false;
 					}
 					else
 					{
-						str += "/" + element.Name;
+						str += "/" + (nameOverride ?? element.Name);
 					}
 
 				}
 				else
 				{
-					str = element.Name;
+					str = nameOverride ?? element.Name;
 					foreach (IWorldElement parentElem in parents)
 					{
 						str += "/" + parentElem.Name;
@@ -249,6 +256,7 @@ namespace ReferenceFinder
 				//ignoreSelfReferences.Value.Value = true;
 				//ignoreSlotParentRef = Data.AddSlot("ignoreSlotParentRef").AttachComponent<ValueField<bool>>();
 				showDetails = Data.AddSlot("showDetails").AttachComponent<ValueField<bool>>();
+				showElementType = Data.AddSlot("showElementType").AttachComponent<ValueField<bool>>();
 				maxResults = Data.AddSlot("maxResults").AttachComponent<ValueField<int>>();
 				maxResults.Value.Value = 256;
 				results = Data.AddSlot("results").AttachComponent<ReferenceMultiplexer<ISyncRef>>();
@@ -274,15 +282,15 @@ namespace ReferenceFinder
 				UI.Style.PreferredWidth = 400f;
 				UI.Style.MinWidth = 400f;
 
-				UI.Text("Search Element:").HorizontalAlign.Value = TextHorizontalAlignment.Left;
+				UI.Text("Drop any reference here:").HorizontalAlign.Value = TextHorizontalAlignment.Left;
 				UI.Next("Element");
 				UI.Current.AttachComponent<RefEditor>().Setup(elementField.Reference);
 
 				UI.HorizontalElementWithLabel("Include child slots:", 0.942f, () => UI.BooleanMemberEditor(processChildrenSlots.Value));
 
-				UI.HorizontalElementWithLabel("Include child components:", 0.942f, () => UI.BooleanMemberEditor(processContainedComponents.Value));
+				UI.HorizontalElementWithLabel("Include contained components:", 0.942f, () => UI.BooleanMemberEditor(processContainedComponents.Value));
 
-				UI.HorizontalElementWithLabel("Include child streams:", 0.942f, () => UI.BooleanMemberEditor(processContainedStreams.Value));
+				UI.HorizontalElementWithLabel("Include contained streams:", 0.942f, () => UI.BooleanMemberEditor(processContainedStreams.Value));
 
 				UI.HorizontalElementWithLabel("Include sync members:", 0.942f, () => UI.BooleanMemberEditor(processWorkerSyncMembers.Value));
 
@@ -294,7 +302,7 @@ namespace ReferenceFinder
 
 				UI.Spacer(24f);
 
-				UI.HorizontalElementWithLabel("Max Results:", 0.884f, () =>
+				UI.HorizontalElementWithLabel("Max results:", 0.884f, () =>
 				{
 					var intField = UI.IntegerField(1, 1024);
 					intField.ParsedValue.Value = maxResults.Value.Value;
@@ -302,7 +310,9 @@ namespace ReferenceFinder
 					return intField;
 				});
 
-				UI.HorizontalElementWithLabel("Spawn Detail Text:", 0.942f, () => UI.BooleanMemberEditor(showDetails.Value));
+				UI.HorizontalElementWithLabel("Spawn detail text:", 0.942f, () => UI.BooleanMemberEditor(showDetails.Value));
+
+				UI.HorizontalElementWithLabel("Show element type in detail text:", 0.942f, () => UI.BooleanMemberEditor(showElementType.Value));
 
 				searchButton = UI.Button("Search");
 				searchButton.LocalPressed += SearchPressed;
@@ -478,10 +488,10 @@ namespace ReferenceFinder
 				string text = "";
 				foreach (IWorldElement element in referenceMap.Keys)
 				{
-					text += GetElementText(element) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(element))} is referenced by:\n";
+					text += GetElementText(element, showElementType.Value) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(element))} is referenced by:\n";
 					foreach (ISyncRef syncRef in referenceMap[element])
 					{
-						text += "    " + GetElementText(syncRef) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(syncRef))}\n";
+						text += "  * " + GetElementText(syncRef, showElementType.Value) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(syncRef))}\n";
 					}
 					text += "\n";
 				}
@@ -521,7 +531,7 @@ namespace ReferenceFinder
 				return new StringRenderTree(s).GetRawString();
 			}
 
-			string GetElementText(IWorldElement element, bool showElementType = true, bool showLabels = true)
+			string GetElementText(IWorldElement element, bool showElementType = false, bool showLabels = false)
 			{
 				Component component = element.FindNearestParent<Component>();
 				Slot slot = component?.Slot ?? element.FindNearestParent<Slot>();
@@ -559,7 +569,7 @@ namespace ReferenceFinder
 
 					//value = (!(element is SyncElement syncElement)) ? $"{elemPrefix}{GetNiceElementName(element) ?? element.GetType().Name}</color> {arg}" : $"{elemPrefix}{syncElement.NameWithPath}</color> {arg}";
 
-					value = $"{elemPrefix}{GetNiceElementName(element) ?? element.GetType().Name}{elemPostfix} {arg}";
+					value = $"{elemPrefix}{GetNiceElementName(element)}{elemPostfix} {arg}";
 
 					return value;
 				}
