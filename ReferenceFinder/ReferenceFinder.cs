@@ -11,11 +11,10 @@ using System.Net;
 using System.Reflection;
 using System;
 using System.Collections;
-using static FrooxEngine.UIX.LayoutHelper;
 
-namespace ReferenceFinder
+namespace ReferenceFinderMod
 {
-	public class ReferenceFinder : ResoniteMod
+	public class ReferenceFinderMod : ResoniteMod
 	{
 		public override string Name => "Reference Finder Wizard";
 		public override string Author => "Nytra";
@@ -55,19 +54,24 @@ namespace ReferenceFinder
 
 			readonly ReferenceField<IWorldElement> elementField;
 
-			readonly ValueField<bool> processWorkerSyncMembers;
-			readonly ValueField<bool> processContainedComponents;
-			readonly ValueField<bool> processChildrenSlots;
-			readonly ValueField<bool> processContainedStreams;
-			//readonly ValueField<bool> processSyncBags;
-			//readonly ValueField<bool> processSyncLists;
-			readonly ValueField<bool> processComplexMembers;
+			//readonly ValueField<bool> processWorkerSyncMembers;
+			//readonly ValueField<bool> processContainedComponents;
+			//readonly ValueField<bool> processChildrenSlots;
+			//readonly ValueField<bool> processContainedStreams;
+			//readonly ValueField<bool> processComplexMembers;
+
+			readonly ValueField<bool> includeChildrenSlots;
+			readonly ValueField<bool> includeChildrenMembers;
+			
 			readonly ValueField<bool> ignoreNonPersistent;
 			readonly ValueField<bool> ignoreSelfReferences;
 			readonly ValueField<bool> ignoreInspectors;
-			//readonly ValueField<bool> ignoreSlotParentRef;
+			readonly ValueField<bool> ignoreNonWorkerRefs;
+			readonly ValueField<bool> ignoreNestedRefs;
+
 			readonly ValueField<bool> showDetails;
 			readonly ValueField<bool> showElementType;
+
 			readonly ValueField<int> maxResults;
 
 			readonly ReferenceMultiplexer<ISyncRef> results;
@@ -253,26 +257,30 @@ namespace ReferenceFinder
 
 				Slot Data = WizardSlot.AddSlot("Data");
 				elementField = Data.AddSlot("elementField").AttachComponent<ReferenceField<IWorldElement>>();
-				processWorkerSyncMembers = Data.AddSlot("processWorkerSyncMembers").AttachComponent<ValueField<bool>>();
-				processWorkerSyncMembers.Value.Value = true;
-				processContainedComponents = Data.AddSlot("processContainedComponents").AttachComponent<ValueField<bool>>();
-				processContainedComponents.Value.Value = true;
-				processContainedStreams = Data.AddSlot("processContainedStreams").AttachComponent<ValueField<bool>>();
-				processContainedStreams.Value.Value = true;
-				processChildrenSlots = Data.AddSlot("processChildrenSlots").AttachComponent<ValueField<bool>>();
-				processChildrenSlots.Value.Value = true;
-				processComplexMembers = Data.AddSlot("processComplexMembers").AttachComponent<ValueField<bool>>();
-				processComplexMembers.Value.Value = true;
-				//processSyncBags = Data.AddSlot("processSyncRefBags").AttachComponent<ValueField<bool>>();
-				//processSyncBags.Value.Value = true;
-				//processSyncLists = Data.AddSlot("processSyncLists").AttachComponent<ValueField<bool>>();
-				//processSyncLists.Value.Value = true;
+				//processWorkerSyncMembers = Data.AddSlot("processWorkerSyncMembers").AttachComponent<ValueField<bool>>();
+				//processWorkerSyncMembers.Value.Value = true;
+				//processContainedComponents = Data.AddSlot("processContainedComponents").AttachComponent<ValueField<bool>>();
+				//processContainedComponents.Value.Value = true;
+				//processContainedStreams = Data.AddSlot("processContainedStreams").AttachComponent<ValueField<bool>>();
+				//processContainedStreams.Value.Value = true;
+				//processChildrenSlots = Data.AddSlot("processChildrenSlots").AttachComponent<ValueField<bool>>();
+				//processChildrenSlots.Value.Value = true;
+				//processComplexMembers = Data.AddSlot("processComplexMembers").AttachComponent<ValueField<bool>>();
+				//processComplexMembers.Value.Value = true;
+				includeChildrenMembers = Data.AddSlot("includeChildrenMembers").AttachComponent<ValueField<bool>>();
+				//includeChildrenMembers.Value.Value = true;
+				includeChildrenSlots = Data.AddSlot("includeChildrenSlots").AttachComponent<ValueField<bool>>();
+				//includeChildrenSlots.Value.Value = true;
 				ignoreNonPersistent = Data.AddSlot("ignoreNonPersistent").AttachComponent<ValueField<bool>>();
+				ignoreNonPersistent.Value.Value = true;
 				ignoreSelfReferences = Data.AddSlot("ignoreSelfReferences").AttachComponent<ValueField<bool>>();
+				ignoreSelfReferences.Value.Value = true;
 				ignoreInspectors = Data.AddSlot("ignoreInspectors").AttachComponent<ValueField<bool>>();
 				ignoreInspectors.Value.Value = true;
-				//ignoreSelfReferences.Value.Value = true;
-				//ignoreSlotParentRef = Data.AddSlot("ignoreSlotParentRef").AttachComponent<ValueField<bool>>();
+				ignoreNonWorkerRefs = Data.AddSlot("ignoreNonWorkerRefs").AttachComponent<ValueField<bool>>();
+				ignoreNonWorkerRefs.Value.Value = true;
+				ignoreNestedRefs = Data.AddSlot("ignoreNestedRefs").AttachComponent<ValueField<bool>>();
+				ignoreNestedRefs.Value.Value = true;
 				showDetails = Data.AddSlot("showDetails").AttachComponent<ValueField<bool>>();
 				showElementType = Data.AddSlot("showElementType").AttachComponent<ValueField<bool>>();
 				maxResults = Data.AddSlot("maxResults").AttachComponent<ValueField<int>>();
@@ -304,25 +312,29 @@ namespace ReferenceFinder
 				UI.Next("Element");
 				UI.Current.AttachComponent<RefEditor>().Setup(elementField.Reference);
 
-				UI.HorizontalElementWithLabel("Include child slots:", 0.942f, () => UI.BooleanMemberEditor(processChildrenSlots.Value));
+				//UI.HorizontalElementWithLabel("Include child slots:", 0.942f, () => UI.BooleanMemberEditor(processChildrenSlots.Value));
 
-				UI.HorizontalElementWithLabel("Include contained components:", 0.942f, () => UI.BooleanMemberEditor(processContainedComponents.Value));
+				//UI.HorizontalElementWithLabel("Include contained components:", 0.942f, () => UI.BooleanMemberEditor(processContainedComponents.Value));
 
-				UI.HorizontalElementWithLabel("Include contained streams:", 0.942f, () => UI.BooleanMemberEditor(processContainedStreams.Value));
+				//UI.HorizontalElementWithLabel("Include contained streams:", 0.942f, () => UI.BooleanMemberEditor(processContainedStreams.Value));
 
-				UI.HorizontalElementWithLabel("Include worker sync members:", 0.942f, () => UI.BooleanMemberEditor(processWorkerSyncMembers.Value));
+				//UI.HorizontalElementWithLabel("Include basic sync members:", 0.942f, () => UI.BooleanMemberEditor(processWorkerSyncMembers.Value));
 
-				UI.HorizontalElementWithLabel("Include complex members:", 0.942f, () => UI.BooleanMemberEditor(processComplexMembers.Value));
+				//UI.HorizontalElementWithLabel("Include complex sync members:", 0.942f, () => UI.BooleanMemberEditor(processComplexMembers.Value));
 
-				//UI.HorizontalElementWithLabel("Include sync bags:", 0.942f, () => UI.BooleanMemberEditor(processSyncBags.Value));
+				UI.HorizontalElementWithLabel("Include child slots:", 0.942f, () => UI.BooleanMemberEditor(includeChildrenSlots.Value));
 
-				//UI.HorizontalElementWithLabel("Include sync lists:", 0.942f, () => UI.BooleanMemberEditor(processSyncLists.Value));
+				UI.HorizontalElementWithLabel("Include child members and child components:", 0.942f, () => UI.BooleanMemberEditor(includeChildrenMembers.Value));
 
-				UI.HorizontalElementWithLabel("Ignore inspectors:", 0.942f, () => UI.BooleanMemberEditor(ignoreInspectors.Value));
+				UI.Spacer(24f);
+
+				UI.HorizontalElementWithLabel("Ignore references from inside inspector UI:", 0.942f, () => UI.BooleanMemberEditor(ignoreInspectors.Value));
+
+				UI.HorizontalElementWithLabel("Ignore nested references:", 0.942f, () => UI.BooleanMemberEditor(ignoreNestedRefs.Value));
+
+				UI.HorizontalElementWithLabel("Ignore references which cannot be opened in inspectors:", 0.942f, () => UI.BooleanMemberEditor(ignoreNonWorkerRefs.Value));
 
 				UI.HorizontalElementWithLabel("Ignore references which are children of the search element:", 0.942f, () => UI.BooleanMemberEditor(ignoreSelfReferences.Value));
-
-				//UI.HorizontalElementWithLabel("Ignore slot parent references:", 0.942f, () => UI.BooleanMemberEditor(ignoreSlotParentRef.Value));
 
 				UI.HorizontalElementWithLabel("Ignore non-persistent references:", 0.942f, () => UI.BooleanMemberEditor(ignoreNonPersistent.Value));
 
@@ -422,47 +434,48 @@ namespace ReferenceFinder
 			{
 				if (target.FilterWorldElement() == null || target.IsLocalElement) return;
 				elements.Add(target);
-				// Slot
-				if (processChildrenSlots.Value && target is Slot slot)
+				// Children slots
+				if (includeChildrenSlots.Value && target is Slot slot)
 				{
 					foreach (Slot childSlot in slot.Children)
 					{
 						GetSearchElements(elements, childSlot);
 					}
 				}
-				// Sync members (fields, lists, bags, sync objects)
-				if (processWorkerSyncMembers.Value && target is Worker worker)
+				// Sync members
+				if (includeChildrenMembers.Value && target is Worker worker)
 				{
 					foreach (ISyncMember syncMember in worker.SyncMembers)
 					{
 						GetSearchElements(elements, syncMember);
 					}
 				}
-				// Slot
-				if (processContainedComponents.Value && target is ContainerWorker<Component> containerWorker)
+				// Slot components
+				if (includeChildrenMembers.Value && target is ContainerWorker<Component> containerWorker)
 				{
 					foreach (Component component in containerWorker.Components)
 					{
 						GetSearchElements(elements, component);
 					}
 				}
-				// User
-				else if (processContainedComponents.Value && target is ContainerWorker<UserComponent> containerWorker2)
+				// User components
+				else if (includeChildrenMembers.Value && target is ContainerWorker<UserComponent> containerWorker2)
 				{
 					foreach (UserComponent userComponent in containerWorker2.Components)
 					{
 						GetSearchElements(elements, userComponent);
 					}
 				}
-				// syncBags storing IWorldElements
-				if (processComplexMembers.Value && target is ISyncBag syncBag)
+				// syncBags
+				if (includeChildrenMembers.Value && target is ISyncBag syncBag)
 				{
 					foreach (IWorldElement element in syncBag.Values)
 					{
 						GetSearchElements(elements, element);
 					}
 				}
-				if (processComplexMembers.Value && target is ISyncList syncList)
+				// syncLists
+				if (includeChildrenMembers.Value && target is ISyncList syncList)
 				{
 					if (syncList.Count > 0 && syncList.GetElement(0) is IWorldElement)
 					{
@@ -472,7 +485,8 @@ namespace ReferenceFinder
 						}
 					}
 				}
-				if (processComplexMembers.Value && target is ISyncArray syncArray)
+				// syncArrays
+				if (includeChildrenMembers.Value && target is ISyncArray syncArray)
 				{
 					if (syncArray.Count > 0 && syncArray.GetElement(0) is IWorldElement)
 					{
@@ -482,14 +496,16 @@ namespace ReferenceFinder
 						}
 					}
 				}
-				if (processComplexMembers.Value && target is ISyncDictionary syncDict)
+				// syncDictionaries
+				if (includeChildrenMembers.Value && target is ISyncDictionary syncDict)
 				{
 					foreach (SyncElement element in syncDict.Values)
 					{
 						GetSearchElements(elements, element);
 					}
 				}
-				if (processComplexMembers.Value && target is SyncVar syncVar && syncVar.Element != null) 
+				// syncVars
+				if (includeChildrenMembers.Value && target is SyncVar syncVar && syncVar.Element != null) 
 				{
 					GetSearchElements(elements, syncVar.Element);
 				}
@@ -503,6 +519,12 @@ namespace ReferenceFinder
 					return s.GetComponentInParents<WorkerInspector>() != null || s.GetComponentInParents<SceneInspector>() != null || s.GetComponentInParents<UserInspector>() != null;
 				}
 				return false;
+			}
+
+			bool IsOpenableInInspector(IWorldElement element)
+			{
+				if (element.FindNearestParent<Worker>().FilterWorldElement() == null) return false;
+				return true;
 			}
 
 			void FindReferences(HashSet<IWorldElement> elements, out bool stoppedEarly)
@@ -528,11 +550,11 @@ namespace ReferenceFinder
 								&& syncRef != elementField.Reference
 								&& syncRef.Parent != results.References
 								&& !(ignoreNonPersistent.Value && !isElementPersistent(syncRef))
-								//&& !(ignoreSlotParentRef.Value && (syncRef.Parent is Slot s && s.ParentReference == syncRef))
 								&& !(ignoreSelfReferences.Value && syncRef.IsChildOfElement(elementField.Reference.Target))
-								&& !(ignoreInspectors.Value && IsInInspector(syncRef)))
+								&& !(ignoreInspectors.Value && IsInInspector(syncRef))
+								&& !(ignoreNonWorkerRefs.Value && !IsOpenableInInspector(syncRef))
 							// ignore ISyncRefs which are children of other ISyncRefs? (avoids having two results which basically point to the same thing e.g. User field in UserRef sync object)
-							//&& syncRef.Parent?.FindNearestParent<ISyncRef>()?.FilterWorldElement() == null)
+								&& !(ignoreNestedRefs.Value && syncRef.Parent?.FindNearestParent<ISyncRef>()?.FilterWorldElement() != null))
 							{
 								results.References.Add(syncRef);
 								if (showDetails.Value)
