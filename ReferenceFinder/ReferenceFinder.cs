@@ -7,10 +7,7 @@ using ResoniteHotReloadLib;
 using ResoniteModLoader;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Reflection;
-using System;
-using System.Collections;
 
 namespace ReferenceFinderMod
 {
@@ -54,15 +51,10 @@ namespace ReferenceFinderMod
 
 			readonly ReferenceField<IWorldElement> elementField;
 
-			//readonly ValueField<bool> processWorkerSyncMembers;
-			//readonly ValueField<bool> processContainedComponents;
-			//readonly ValueField<bool> processChildrenSlots;
-			//readonly ValueField<bool> processContainedStreams;
-			//readonly ValueField<bool> processComplexMembers;
-
 			readonly ValueField<bool> includeChildrenSlots;
 			readonly ValueField<bool> includeChildrenMembers;
-			
+			readonly ValueField<bool> includeChildrenComponents;
+
 			readonly ValueField<bool> ignoreNonPersistent;
 			readonly ValueField<bool> ignoreSelfReferences;
 			readonly ValueField<bool> ignoreInspectors;
@@ -71,6 +63,7 @@ namespace ReferenceFinderMod
 
 			readonly ValueField<bool> showDetails;
 			readonly ValueField<bool> showElementType;
+			readonly ValueField<bool> showLabels;
 
 			readonly ValueField<int> maxResults;
 
@@ -90,61 +83,11 @@ namespace ReferenceFinderMod
 				statusText.Content.Value = info;
 			}
 
-			//string GetSlotParentHierarchyString(Slot slot, bool reverse = true)
-			//{
-			//	string str;
-			//	List<Slot> parents = new List<Slot>();
-
-			//	slot.ForeachParent((parent) =>
-			//	{
-			//		parents.Add(parent);
-			//	});
-
-			//	if (reverse)
-			//	{
-			//		str = "";
-			//		parents.Reverse();
-			//		bool first = true;
-			//		foreach (Slot s in parents)
-			//		{
-			//			if (first)
-			//			{
-			//				str += s.Name;
-			//				first = false;
-			//			}
-			//			else
-			//			{
-			//				str += "/" + s.Name;
-			//			}
-			//		}
-			//		if (first)
-			//		{
-			//			str += slot.Name;
-			//			first = false;
-			//		}
-			//		else
-			//		{
-			//			str += "/" + slot.Name;
-			//		}
-
-			//	}
-			//	else
-			//	{
-			//		str = slot.Name;
-			//		foreach (Slot s in parents)
-			//		{
-			//			str += "/" + s.Name;
-			//		}
-			//	}
-
-			//	return str;
-			//}
-
 			string GetNiceElementName(IWorldElement element)
 			{
 				if (element == null)
 				{
-					return "";
+					return "<null element>";
 				}
 				string s = null;
 				if (element is User user)
@@ -157,7 +100,8 @@ namespace ReferenceFinderMod
 				}
 				else if (element is Component component)
 				{
-					s = component.Name;
+					//s = component.Name;
+					s = component.GetType().GetNiceName();
 				}
 				else if (element is Slot slot)
 				{
@@ -257,24 +201,16 @@ namespace ReferenceFinderMod
 
 				Slot Data = WizardSlot.AddSlot("Data");
 				elementField = Data.AddSlot("elementField").AttachComponent<ReferenceField<IWorldElement>>();
-				//processWorkerSyncMembers = Data.AddSlot("processWorkerSyncMembers").AttachComponent<ValueField<bool>>();
-				//processWorkerSyncMembers.Value.Value = true;
-				//processContainedComponents = Data.AddSlot("processContainedComponents").AttachComponent<ValueField<bool>>();
-				//processContainedComponents.Value.Value = true;
-				//processContainedStreams = Data.AddSlot("processContainedStreams").AttachComponent<ValueField<bool>>();
-				//processContainedStreams.Value.Value = true;
-				//processChildrenSlots = Data.AddSlot("processChildrenSlots").AttachComponent<ValueField<bool>>();
-				//processChildrenSlots.Value.Value = true;
-				//processComplexMembers = Data.AddSlot("processComplexMembers").AttachComponent<ValueField<bool>>();
-				//processComplexMembers.Value.Value = true;
 				includeChildrenMembers = Data.AddSlot("includeChildrenMembers").AttachComponent<ValueField<bool>>();
 				//includeChildrenMembers.Value.Value = true;
 				includeChildrenSlots = Data.AddSlot("includeChildrenSlots").AttachComponent<ValueField<bool>>();
 				//includeChildrenSlots.Value.Value = true;
+				includeChildrenComponents = Data.AddSlot("includeChildrenSlots").AttachComponent<ValueField<bool>>();
+				//includeChildrenComponents.Value.Value = true;
 				ignoreNonPersistent = Data.AddSlot("ignoreNonPersistent").AttachComponent<ValueField<bool>>();
-				ignoreNonPersistent.Value.Value = true;
+				//ignoreNonPersistent.Value.Value = true;
 				ignoreSelfReferences = Data.AddSlot("ignoreSelfReferences").AttachComponent<ValueField<bool>>();
-				ignoreSelfReferences.Value.Value = true;
+				//ignoreSelfReferences.Value.Value = true;
 				ignoreInspectors = Data.AddSlot("ignoreInspectors").AttachComponent<ValueField<bool>>();
 				ignoreInspectors.Value.Value = true;
 				ignoreNonWorkerRefs = Data.AddSlot("ignoreNonWorkerRefs").AttachComponent<ValueField<bool>>();
@@ -283,6 +219,7 @@ namespace ReferenceFinderMod
 				ignoreNestedRefs.Value.Value = true;
 				showDetails = Data.AddSlot("showDetails").AttachComponent<ValueField<bool>>();
 				showElementType = Data.AddSlot("showElementType").AttachComponent<ValueField<bool>>();
+				showLabels = Data.AddSlot("showLabels").AttachComponent<ValueField<bool>>();
 				maxResults = Data.AddSlot("maxResults").AttachComponent<ValueField<int>>();
 				maxResults.Value.Value = 256;
 				results = Data.AddSlot("results").AttachComponent<ReferenceMultiplexer<ISyncRef>>();
@@ -312,19 +249,11 @@ namespace ReferenceFinderMod
 				UI.Next("Element");
 				UI.Current.AttachComponent<RefEditor>().Setup(elementField.Reference);
 
-				//UI.HorizontalElementWithLabel("Include child slots:", 0.942f, () => UI.BooleanMemberEditor(processChildrenSlots.Value));
+				UI.HorizontalElementWithLabel("Include child slots if the element is a slot:", 0.942f, () => UI.BooleanMemberEditor(includeChildrenSlots.Value));
 
-				//UI.HorizontalElementWithLabel("Include contained components:", 0.942f, () => UI.BooleanMemberEditor(processContainedComponents.Value));
+				UI.HorizontalElementWithLabel("Include contained components:", 0.942f, () => UI.BooleanMemberEditor(includeChildrenComponents.Value));
 
-				//UI.HorizontalElementWithLabel("Include contained streams:", 0.942f, () => UI.BooleanMemberEditor(processContainedStreams.Value));
-
-				//UI.HorizontalElementWithLabel("Include basic sync members:", 0.942f, () => UI.BooleanMemberEditor(processWorkerSyncMembers.Value));
-
-				//UI.HorizontalElementWithLabel("Include complex sync members:", 0.942f, () => UI.BooleanMemberEditor(processComplexMembers.Value));
-
-				UI.HorizontalElementWithLabel("Include child slots:", 0.942f, () => UI.BooleanMemberEditor(includeChildrenSlots.Value));
-
-				UI.HorizontalElementWithLabel("Include child members and child components:", 0.942f, () => UI.BooleanMemberEditor(includeChildrenMembers.Value));
+				UI.HorizontalElementWithLabel("Include contained members:", 0.942f, () => UI.BooleanMemberEditor(includeChildrenMembers.Value));
 
 				UI.Spacer(24f);
 
@@ -351,6 +280,8 @@ namespace ReferenceFinderMod
 				UI.HorizontalElementWithLabel("Spawn detail text:", 0.942f, () => UI.BooleanMemberEditor(showDetails.Value));
 
 				UI.HorizontalElementWithLabel("Show element type in detail text:", 0.942f, () => UI.BooleanMemberEditor(showElementType.Value));
+
+				//UI.HorizontalElementWithLabel("Show slot, component and user labels in detail text:", 0.942f, () => UI.BooleanMemberEditor(showLabels.Value));
 
 				searchButton = UI.Button("Search");
 				searchButton.LocalPressed += SearchPressed;
@@ -433,7 +364,9 @@ namespace ReferenceFinderMod
 			void GetSearchElements(HashSet<IWorldElement> elements, IWorldElement target)
 			{
 				if (target.FilterWorldElement() == null || target.IsLocalElement) return;
+
 				elements.Add(target);
+
 				// Children slots
 				if (includeChildrenSlots.Value && target is Slot slot)
 				{
@@ -442,6 +375,7 @@ namespace ReferenceFinderMod
 						GetSearchElements(elements, childSlot);
 					}
 				}
+
 				// Sync members
 				if (includeChildrenMembers.Value && target is Worker worker)
 				{
@@ -450,8 +384,9 @@ namespace ReferenceFinderMod
 						GetSearchElements(elements, syncMember);
 					}
 				}
+
 				// Slot components
-				if (includeChildrenMembers.Value && target is ContainerWorker<Component> containerWorker)
+				if (includeChildrenComponents.Value && target is ContainerWorker<Component> containerWorker)
 				{
 					foreach (Component component in containerWorker.Components)
 					{
@@ -459,13 +394,14 @@ namespace ReferenceFinderMod
 					}
 				}
 				// User components
-				else if (includeChildrenMembers.Value && target is ContainerWorker<UserComponent> containerWorker2)
+				else if (includeChildrenComponents.Value && target is ContainerWorker<UserComponent> containerWorker2)
 				{
 					foreach (UserComponent userComponent in containerWorker2.Components)
 					{
 						GetSearchElements(elements, userComponent);
 					}
 				}
+
 				// syncBags
 				if (includeChildrenMembers.Value && target is ISyncBag syncBag)
 				{
@@ -474,6 +410,7 @@ namespace ReferenceFinderMod
 						GetSearchElements(elements, element);
 					}
 				}
+
 				// syncLists
 				if (includeChildrenMembers.Value && target is ISyncList syncList)
 				{
@@ -485,6 +422,7 @@ namespace ReferenceFinderMod
 						}
 					}
 				}
+
 				// syncArrays
 				if (includeChildrenMembers.Value && target is ISyncArray syncArray)
 				{
@@ -496,14 +434,16 @@ namespace ReferenceFinderMod
 						}
 					}
 				}
+
 				// syncDictionaries
 				if (includeChildrenMembers.Value && target is ISyncDictionary syncDict)
 				{
-					foreach (SyncElement element in syncDict.Values)
+					foreach (ISyncMember element in syncDict.Values)
 					{
 						GetSearchElements(elements, element);
 					}
 				}
+
 				// syncVars
 				if (includeChildrenMembers.Value && target is SyncVar syncVar && syncVar.Element != null) 
 				{
@@ -527,48 +467,62 @@ namespace ReferenceFinderMod
 				return true;
 			}
 
+			void ProcessReference(HashSet<IWorldElement> elements, ISyncRef syncRef)
+			{
+				if (syncRef.FilterWorldElement() != null
+					&& syncRef.Target?.FilterWorldElement() != null
+					&& elements.Contains(syncRef.Target)
+					&& !syncRef.Target.IsLocalElement
+					&& !syncRef.IsLocalElement
+					&& syncRef != elementField.Reference
+					&& syncRef.Parent != results.References
+					&& !(ignoreNonPersistent.Value && !isElementPersistent(syncRef))
+					&& !(ignoreSelfReferences.Value && syncRef.IsChildOfElement(elementField.Reference.Target))
+					&& !(ignoreInspectors.Value && IsInInspector(syncRef))
+					&& !(ignoreNonWorkerRefs.Value && !IsOpenableInInspector(syncRef))
+					// ignore ISyncRefs which are children of other ISyncRefs? (avoids having two results which basically point to the same thing e.g. User field in UserRef sync object)
+					&& !(ignoreNestedRefs.Value && syncRef.Parent?.FindNearestParent<ISyncRef>()?.FilterWorldElement() != null))
+				{
+					results.References.Add(syncRef);
+					if (showDetails.Value)
+					{
+						if (!referenceMap.ContainsKey(syncRef.Target))
+						{
+							referenceMap.Add(syncRef.Target, new HashSet<ISyncRef>());
+						}
+						referenceMap[syncRef.Target].Add(syncRef);
+					}
+				}
+			}
+
 			void FindReferences(HashSet<IWorldElement> elements, out bool stoppedEarly)
 			{
 				stoppedEarly = false;
 				var objectsDict = (Dictionary<RefID, IWorldElement>)objectsField.GetValue(WizardSlot.World.ReferenceController);
 				if (objectsDict != null)
 				{
-					foreach (var kVP in objectsDict.ToList())
+					foreach (IWorldElement element in objectsDict.Values.ToList())
 					{
-						if (kVP.Value is ISyncRef syncRef)
+						if (element is ISyncRef syncRef)
 						{
 							if (results.References.Count >= maxResults.Value.Value)
 							{
 								stoppedEarly = true;
 								break;
 							}
-							if (syncRef.FilterWorldElement() != null
-								&& syncRef.Target?.FilterWorldElement() != null
-								&& elements.Contains(syncRef.Target)
-								&& !syncRef.Target.IsLocalElement
-								&& !syncRef.IsLocalElement
-								&& syncRef != elementField.Reference
-								&& syncRef.Parent != results.References
-								&& !(ignoreNonPersistent.Value && !isElementPersistent(syncRef))
-								&& !(ignoreSelfReferences.Value && syncRef.IsChildOfElement(elementField.Reference.Target))
-								&& !(ignoreInspectors.Value && IsInInspector(syncRef))
-								&& !(ignoreNonWorkerRefs.Value && !IsOpenableInInspector(syncRef))
-							// ignore ISyncRefs which are children of other ISyncRefs? (avoids having two results which basically point to the same thing e.g. User field in UserRef sync object)
-								&& !(ignoreNestedRefs.Value && syncRef.Parent?.FindNearestParent<ISyncRef>()?.FilterWorldElement() != null))
-							{
-								results.References.Add(syncRef);
-								if (showDetails.Value)
-								{
-									if (!referenceMap.ContainsKey(syncRef.Target))
-									{
-										referenceMap.Add(syncRef.Target, new HashSet<ISyncRef>());
-									}
-									referenceMap[syncRef.Target].Add(syncRef);
-								}
-							}
+							ProcessReference(elements, syncRef);
 						}
 					}
 				}
+				else
+				{
+					Error("Could not find world objects dictionary!");
+					UpdateStatusText("Error: Could not find world objects dictionary!");
+				}
+
+				// using World.ForeachWorldElement does not get every single reference
+
+				//bool stoppedEarlyInternal = false;
 				//WizardSlot.World.ForeachWorldElement((ISyncRef syncRef) =>
 				//{
 				//	if (results.References.Count >= maxResults.Value.Value)
@@ -577,29 +531,7 @@ namespace ReferenceFinderMod
 				//		stoppedEarlyInternal = true;
 				//		return;
 				//	}
-				//	if (syncRef.FilterWorldElement() != null
-				//		&& syncRef.Target?.FilterWorldElement() != null
-				//		&& elements.Contains(syncRef.Target)
-				//		&& !syncRef.Target.IsLocalElement
-				//		&& !syncRef.IsLocalElement
-				//		&& syncRef != elementField.Reference
-				//		&& syncRef.Parent != results.References
-				//		&& !(ignoreNonPersistent.Value && !isElementPersistent(syncRef))
-				//		//&& !(ignoreSlotParentRef.Value && (syncRef.Parent is Slot s && s.ParentReference == syncRef))
-				//		&& !(ignoreSelfReferences.Value && syncRef.IsChildOfElement(elementField.Reference.Target)))
-				//		// ignore ISyncRefs which are children of other ISyncRefs? (avoids having two results which basically point to the same thing e.g. User field in UserRef sync object)
-				//		//&& syncRef.Parent?.FindNearestParent<ISyncRef>()?.FilterWorldElement() == null)
-				//	{
-				//		results.References.Add(syncRef);
-				//		if (showDetails.Value)
-				//		{
-				//			if (!referenceMap.ContainsKey(syncRef.Target))
-				//			{
-				//				referenceMap.Add(syncRef.Target, new HashSet<ISyncRef>());
-				//			}
-				//			referenceMap[syncRef.Target].Add(syncRef);
-				//		}
-				//	}
+				//	ProcessReference(elements, syncRef);
 				//});
 			}
 
@@ -608,10 +540,10 @@ namespace ReferenceFinderMod
 				string text = "";
 				foreach (IWorldElement element in referenceMap.Keys)
 				{
-					text += GetElementText(element, showElementType.Value) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(element))} is referenced by:\n";
+					text += GetElementText(element, showElementType.Value, showLabels.Value) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(element))} is referenced by:\n";
 					foreach (ISyncRef syncRef in referenceMap[element])
 					{
-						text += "  • " + GetElementText(syncRef, showElementType.Value) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(syncRef))}\n";
+						text += "  • " + GetElementText(syncRef, showElementType.Value, showLabels.Value) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(syncRef))}\n";
 					}
 					text += "\n";
 				}
@@ -673,8 +605,6 @@ namespace ReferenceFinderMod
 				}
 				else
 				{
-					//string arg = (component != null && component != element) ? ($"on <color=hero.purple>{(showLabels ? "Component: " : "")}" + component.Name + $"</color> on <color=hero.yellow>{(showLabels ? "Slot: " : "")}" + (StripTags(slot?.Name) ?? "NULL SLOT") + "</color>") : ((slot == null) ? "" : ($"on <color=hero.yellow>{(showLabels ? "Slot: " : "")}" + StripTags(slot.Name) + "</color>"));
-
 					string arg;
 					if (component != null && component != element)
 					{
@@ -687,20 +617,18 @@ namespace ReferenceFinderMod
 
 					string elemPrefix = "<color=hero.green>";
 					string elemPostfix = "</color>";
-					if (element is Component component2)
+					if (element is Component)
 					{
 						elemPrefix = $"<color=hero.purple>{(showLabels ? "Component: " : "")}";
 					}
-					else if (element is User user)
+					else if (element is User)
 					{
 						elemPrefix = $"<color=hero.orange>{(showLabels ? "User: " : "")}";
 					}
 					else if (showElementType)
 					{
-						elemPrefix += element.GetType().GetNiceName() + ": ";
+						elemPrefix += "<color= #28b463 >" + element.GetType().GetNiceName() + ": " + "</color>";
 					}
-
-					//value = (!(element is SyncElement syncElement)) ? $"{elemPrefix}{GetNiceElementName(element) ?? element.GetType().Name}</color> {arg}" : $"{elemPrefix}{syncElement.NameWithPath}</color> {arg}";
 
 					value = $"{elemPrefix}{GetNiceElementName(element)}{elemPostfix} {arg}";
 
