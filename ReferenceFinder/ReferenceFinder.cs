@@ -3,7 +3,7 @@ using Elements.Core;
 using FrooxEngine;
 using FrooxEngine.UIX;
 using HarmonyLib;
-using ResoniteHotReloadLib;
+//using ResoniteHotReloadLib;
 using ResoniteModLoader;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,7 +22,7 @@ namespace ReferenceFinderMod
 
 		public override void OnEngineInit()
 		{
-			HotReloader.RegisterForHotReload(this);
+			//HotReloader.RegisterForHotReload(this);
 			Engine.Current.RunPostInit(AddMenuOption);
 		}
 		static void AddMenuOption()
@@ -30,15 +30,15 @@ namespace ReferenceFinderMod
 			DevCreateNewForm.AddAction("Editor", WIZARD_TITLE, (x) => ReferenceFinderWizard.GetOrCreateWizard(x));
 		}
 
-		static void BeforeHotReload()
-		{
-			HotReloader.RemoveMenuOption("Editor", WIZARD_TITLE);
-		}
+		//static void BeforeHotReload()
+		//{
+		//	HotReloader.RemoveMenuOption("Editor", WIZARD_TITLE);
+		//}
 
-		static void OnHotReload(ResoniteMod modInstance)
-		{
-			AddMenuOption();
-		}
+		//static void OnHotReload(ResoniteMod modInstance)
+		//{
+		//	AddMenuOption();
+		//}
 
 		class ReferenceFinderWizard
 		{
@@ -60,6 +60,7 @@ namespace ReferenceFinderMod
 			readonly ValueField<bool> ignoreInspectors;
 			readonly ValueField<bool> ignoreNonWorkerRefs;
 			readonly ValueField<bool> ignoreNestedRefs;
+			//readonly ValueField<bool> ignoreNonSlotRefs;
 
 			readonly ValueField<bool> showDetails;
 			readonly ValueField<bool> showElementType;
@@ -217,6 +218,8 @@ namespace ReferenceFinderMod
 				ignoreNonWorkerRefs.Value.Value = true;
 				ignoreNestedRefs = Data.AddSlot("ignoreNestedRefs").AttachComponent<ValueField<bool>>();
 				ignoreNestedRefs.Value.Value = true;
+				//ignoreNonSlotRefs = Data.AddSlot("ignoreNonSlotRefs").AttachComponent<ValueField<bool>>();
+				//ignoreNonSlotRefs.Value.Value = true;
 				showDetails = Data.AddSlot("showDetails").AttachComponent<ValueField<bool>>();
 				showElementType = Data.AddSlot("showElementType").AttachComponent<ValueField<bool>>();
 				showLabels = Data.AddSlot("showLabels").AttachComponent<ValueField<bool>>();
@@ -262,6 +265,8 @@ namespace ReferenceFinderMod
 				UI.HorizontalElementWithLabel("Ignore nested references:", 0.942f, () => UI.BooleanMemberEditor(ignoreNestedRefs.Value));
 
 				UI.HorizontalElementWithLabel("Ignore references which cannot be opened in inspectors:", 0.942f, () => UI.BooleanMemberEditor(ignoreNonWorkerRefs.Value));
+
+				//UI.HorizontalElementWithLabel("Ignore references which don't exist on slots:", 0.942f, () => UI.BooleanMemberEditor(ignoreNonSlotRefs.Value));
 
 				UI.HorizontalElementWithLabel("Ignore references which are children of the search element:", 0.942f, () => UI.BooleanMemberEditor(ignoreSelfReferences.Value));
 
@@ -445,7 +450,7 @@ namespace ReferenceFinderMod
 				}
 
 				// syncVars
-				if (includeChildrenMembers.Value && target is SyncVar syncVar && syncVar.Element != null) 
+				if (includeChildrenMembers.Value && target is SyncVar syncVar && syncVar.Element != null)
 				{
 					GetSearchElements(elements, syncVar.Element);
 				}
@@ -480,7 +485,7 @@ namespace ReferenceFinderMod
 					&& !(ignoreSelfReferences.Value && syncRef.IsChildOfElement(elementField.Reference.Target))
 					&& !(ignoreInspectors.Value && IsInInspector(syncRef))
 					&& !(ignoreNonWorkerRefs.Value && !IsOpenableInInspector(syncRef))
-					// ignore ISyncRefs which are children of other ISyncRefs? (avoids having two results which basically point to the same thing e.g. User field in UserRef sync object)
+					// ignore ISyncRefs which are children of other ISyncRefs? (avoids having two results which basically point to the same thing e.g. User field in UserRef sync object on VUO)
 					&& !(ignoreNestedRefs.Value && syncRef.Parent?.FindNearestParent<ISyncRef>()?.FilterWorldElement() != null))
 				{
 					results.References.Add(syncRef);
@@ -520,7 +525,8 @@ namespace ReferenceFinderMod
 					UpdateStatusText("Error: Could not find world objects dictionary!");
 				}
 
-				// using World.ForeachWorldElement does not get every single reference
+				// using World.ForeachWorldElement does not get every single reference because it only searches slots
+				// so it doesn't find refs on things like the permission controller which doesn't exist on a slot
 
 				//bool stoppedEarlyInternal = false;
 				//WizardSlot.World.ForeachWorldElement((ISyncRef syncRef) =>
