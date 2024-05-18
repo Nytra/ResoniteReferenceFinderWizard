@@ -598,6 +598,7 @@ namespace ReferenceFinderMod
 				return new StringRenderTree(s).GetRawString();
 			}
 
+			// Based on code from RefEditor.OnChanges
 			string GetElementText(IWorldElement element, bool showElementType = false, bool showLabels = false)
 			{
 				Component component = element.FindNearestParent<Component>();
