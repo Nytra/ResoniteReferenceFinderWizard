@@ -6,8 +6,6 @@
 
 A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that adds a new wizard that lets you find references to things.
 
-https://github.com/Nytra/ResoniteReferenceFinderWizard/releases/download/v1.0.0/ReferenceFinderWizard.dll
-
 ## Installation
 1. Install [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader).
 2. Place [ReferenceFinderWizard.dll](https://github.com/Nytra/ResoniteReferenceFinderWizard/releases/latest/download/ReferenceFinderWizard.dll) into your `rml_mods` folder. This folder should be at `C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_mods` for a default install. You can create it if it's missing, or if you launch the game once with ResoniteModLoader installed it will create the folder for you.
