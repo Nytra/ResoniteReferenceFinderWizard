@@ -4,7 +4,7 @@
 
 ![2024-05-18 09 40 05](https://github.com/Nytra/ResoniteReferenceFinderWizard/assets/14206961/086d96e4-a927-44f5-89f0-f5e3ad38b5c8)
 
-A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that adds a new wizard that lets you find references to things (accepts anything that has the IWorldElement interface).
+A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that adds a new wizard that lets you find references to things.
 
 ## Installation
 1. Install [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader).
