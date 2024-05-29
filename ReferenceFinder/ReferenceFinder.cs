@@ -15,7 +15,7 @@ namespace ReferenceFinderMod
 	{
 		public override string Name => "Reference Finder Wizard";
 		public override string Author => "Nytra";
-		public override string Version => "1.0.0";
+		public override string Version => "1.0.1";
 		public override string Link => "https://github.com/Nytra/ResoniteReferenceFinderWizard";
 
 		const string WIZARD_TITLE = "Reference Finder Wizard (Mod)";
