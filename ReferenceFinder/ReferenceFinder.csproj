@@ -41,26 +41,26 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\rml_libs\0Harmony.dll</HintPath>
+      <HintPath>D:\Steam\steamapps\common\Resonite\rml_libs\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Elements.Assets">
-      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\Resonite_Data\Managed\Elements.Assets.dll</HintPath>
+      <HintPath>D:\Steam\steamapps\common\Resonite\Resonite_Data\Managed\Elements.Assets.dll</HintPath>
     </Reference>
     <Reference Include="Elements.Core">
-      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\Resonite_Data\Managed\Elements.Core.dll</HintPath>
+      <HintPath>D:\Steam\steamapps\common\Resonite\Resonite_Data\Managed\Elements.Core.dll</HintPath>
     </Reference>
     <Reference Include="FrooxEngine">
-      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\Resonite_Data\Managed\FrooxEngine.dll</HintPath>
+      <HintPath>D:\Steam\steamapps\common\Resonite\Resonite_Data\Managed\FrooxEngine.dll</HintPath>
     </Reference>
     <Reference Include="ResoniteModLoader">
-      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\Libraries\ResoniteModLoader.dll</HintPath>
+      <HintPath>D:\Steam\steamapps\common\Resonite\Libraries\ResoniteModLoader.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ValueTuple" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y "$(TargetDir)\$(TargetFileName)" "G:\SteamLibrary\steamapps\common\Resonite\rml_mods\HotReloadMods\"
-copy /y "$(TargetDir)\$(TargetFileName)" "G:\SteamLibrary\steamapps\common\Resonite\rml_mods\"</PostBuildEvent>
+    <PostBuildEvent>copy /y "$(TargetDir)\$(TargetFileName)" "D:\Steam\steamapps\common\Resonite\rml_mods\HotReloadMods\"
+copy /y "$(TargetDir)\$(TargetFileName)" "D:\Steam\steamapps\common\Resonite\rml_mods\"</PostBuildEvent>
   </PropertyGroup>
 </Project>
