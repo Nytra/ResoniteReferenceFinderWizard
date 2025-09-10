@@ -695,6 +695,11 @@ public class ReferenceFinderMod : ResoniteMod
 		LocaleString label = "Find references".AsLocaleKey();
 		colorX? col = RadiantUI_Constants.Neutrals.LIGHT;
 		ContextMenu menu = ima.LocalUser.GetUserContextMenu();
+		if (menu is null)
+		{
+			Error($"Context menu is null in InspectorMemberActions patch!");
+			return;
+		}
 		ContextMenuItem item = menu.AddItem(in label, (Uri?)null, in col);
 		item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, src, menu);
 	}
@@ -732,6 +737,11 @@ public class ReferenceFinderMod : ResoniteMod
 			if (elem != null) {
 				__instance.StartTask(async delegate {
 					var cm = await __instance.LocalUser.OpenContextMenu(__instance, __instance.Slot);
+					if (cm is null)
+					{
+						Error("Context menu is null in Dev Tool patch!");
+						return;
+					}
 					LocaleString label = "Find references".AsLocaleKey();
 					colorX? col = RadiantUI_Constants.Neutrals.LIGHT;
 					ContextMenuItem item = cm.AddItem(in label, (Uri?)null, in col);
