@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>1.0.2</Version>
+		<Version>1.1.0</Version>
 		<ProductName>ReferenceFinderWizard</ProductName>
 		<AssemblyName>ReferenceFinderWizard</AssemblyName>
-		<Copyright>Copyright � Nytra 2024</Copyright>
-		<Authors>Nytra</Authors>
+		<Copyright>Copyright © Nytra 2025</Copyright>
+		<Authors>Nytra, yosh</Authors>
 		<OutputType>Library</OutputType>
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -23,23 +23,18 @@
 		<ResonitePath Condition="'$(ResonitePath)' == ''">G:\SteamLibrary\steamapps\common\Resonite</ResonitePath>
 	</PropertyGroup>
 
-	<!-- path containing managed dlls. for post-split, this is the same as resonite path, but still here just in case -->
-	<PropertyGroup>
-		<ManagedPath>$(ResonitePath)</ManagedPath>
-	</PropertyGroup>
-
 	<ItemGroup>
 		<Reference Include="FrooxEngine">
-			<HintPath>$(ManagedPath)/FrooxEngine.dll</HintPath>
+			<HintPath>$(ResonitePath)/FrooxEngine.dll</HintPath>
 		</Reference>
 		<Reference Include="Elements.Assets">
-			<HintPath>$(ManagedPath)/Elements.Assets.dll</HintPath>
+			<HintPath>$(ResonitePath)/Elements.Assets.dll</HintPath>
 		</Reference>
 		<Reference Include="Elements.Core">
-			<HintPath>$(ManagedPath)/Elements.Core.dll</HintPath>
+			<HintPath>$(ResonitePath)/Elements.Core.dll</HintPath>
 		</Reference>
 		<Reference Include="Renderite.Shared">
-			<HintPath>$(ManagedPath)/Renderite.Shared.dll</HintPath>
+			<HintPath>$(ResonitePath)/Renderite.Shared.dll</HintPath>
 		</Reference>
 
 		<Reference Include="ResoniteModLoader">
@@ -61,7 +56,6 @@
 		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ResonitePath)/rml_mods" />
 		<Message Condition="'$(Configuration)' == 'Debug'" Text="Debug build, copying $(TargetFileName) to $(ResonitePath)/rml_mods/HotReloadMods" Importance="High" />
 		<Copy Condition="'$(Configuration)' == 'Debug'" SourceFiles="$(TargetPath)" DestinationFolder="$(ResonitePath)/rml_mods/HotReloadMods" />
-		<Delete Condition="'$(Configuration)' == 'Release'" Files="$(ResonitePath)/rml_mods/HotReloadMods/ReferenceFinder.dll" />
 	</Target>
 
 </Project>

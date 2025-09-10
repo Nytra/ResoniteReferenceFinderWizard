@@ -1,12 +1,10 @@
 using Elements.Assets;
 using Elements.Core;
 using FrooxEngine;
-using FrooxEngine.Undo;
 using FrooxEngine.UIX;
+using FrooxEngine.Undo;
 using HarmonyLib;
 using ResoniteModLoader;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 
 #if DEBUG
@@ -18,52 +16,64 @@ namespace ReferenceFinderMod;
 public class ReferenceFinderMod : ResoniteMod
 {
 	public override string Name => "Reference Finder Wizard";
-	public override string Author => "Nytra";
-	public override string Version => "1.0.2";
+	public override string Author => "Nytra, yosh";
+	public override string Version => "1.1.0";
 	public override string Link => "https://github.com/Nytra/ResoniteReferenceFinderWizard";
-	private static string harmonyId = "owo.Nytra.ReferenceFinder";
 
 	const string WIZARD_TITLE = "Reference Finder Wizard (Mod)";
+
+	private static Harmony harmony = new Harmony("owo.Nytra.ReferenceFinderWizard");
+	private static Type? nestedAsyncPressedType;
 
 	public override void OnEngineInit()
 	{
 #if DEBUG
 		HotReloader.RegisterForHotReload(this);
 #endif
-		Engine.Current.RunPostInit(AddMenuOption);
-
-		// patch inspector member action
-		var og = typeof(InspectorMemberActions)
-			.GetNestedType("<>c__DisplayClass5_0", BindingFlags.Instance | BindingFlags.NonPublic)
-			.GetNestedType("<<Pressed>b__0>d", BindingFlags.Instance | BindingFlags.NonPublic)
-			.GetMethod("MoveNext", BindingFlags.Instance | BindingFlags.NonPublic);
-		var post = typeof(ReferenceFinderMod).GetMethod("Postfix_AddButtonToMember", BindingFlags.Static | BindingFlags.Public);
-
-		var harmony = new Harmony(harmonyId);
-		harmony.Patch(og, postfix: post);
-
-		// patch the rest
-		harmony.PatchAll();
+		Engine.Current.RunPostInit(InitializeMod);
 	}
 
-	static void AddMenuOption()
+	static void InitializeMod()
 	{
 		DevCreateNewForm.AddAction("Editor", WIZARD_TITLE, (x) => ReferenceFinderWizard.GetOrCreateWizard(x));
+
+		harmony.PatchAll();
+
+		MethodInfo? moveNextMethod = null;
+
+		foreach (var innerType in AccessTools.InnerTypes(typeof(InspectorMemberActions)))
+		{
+			var methods = AccessTools.GetDeclaredMethods(innerType);
+			var asyncPressedMethod = methods.FirstOrDefault(m => m.ReturnType == typeof(Task) && m.Name.Contains("Pressed"));
+			if (asyncPressedMethod != null)
+			{
+				nestedAsyncPressedType = innerType;
+				moveNextMethod = AccessTools.AsyncMoveNext(asyncPressedMethod);
+				break;
+			}
+		}
+
+		if (moveNextMethod == null)
+		{
+			Error("Could not find MoveNext method for InspectorMemberActions patch!");
+			return;
+		}
+
+		var post = AccessTools.Method(typeof(ReferenceFinderMod), nameof(Postfix_AddButtonToMember));
+
+		harmony.Patch(moveNextMethod, postfix: post);
 	}
 
 #if DEBUG
 	static void BeforeHotReload()
 	{
-		var harmony = new Harmony(harmonyId);
-		harmony.UnpatchAll();
+		harmony.UnpatchAll(harmony.Id);
 		HotReloader.RemoveMenuOption("Editor", WIZARD_TITLE);
 	}
 
 	static void OnHotReload(ResoniteMod modInstance)
 	{
-		var harmony = new Harmony(harmonyId);
-		harmony.PatchAll();
-		AddMenuOption();
+		InitializeMod();
 	}
 #endif
 
@@ -87,7 +97,6 @@ public class ReferenceFinderMod : ResoniteMod
 		readonly ValueField<bool> ignoreInspectors;
 		readonly ValueField<bool> ignoreNonWorkerRefs;
 		readonly ValueField<bool> ignoreNestedRefs;
-		//readonly ValueField<bool> ignoreNonSlotRefs;
 
 		readonly ValueField<bool> showDetails;
 		readonly ValueField<bool> showElementType;
@@ -157,7 +166,7 @@ public class ReferenceFinderMod : ResoniteMod
 			string str;
 			List<IWorldElement> parents = new List<IWorldElement>();
 
-			IWorldElement parent = element.Parent?.FilterWorldElement();
+			IWorldElement? parent = element.Parent?.FilterWorldElement();
 			while (parent != null && parent is not World)
 			{
 				parents.Add(parent);
@@ -230,11 +239,8 @@ public class ReferenceFinderMod : ResoniteMod
 			Slot Data = WizardSlot.AddSlot("Data");
 			elementField = Data.AddSlot("elementField").AttachComponent<ReferenceField<IWorldElement>>();
 			includeChildrenMembers = Data.AddSlot("includeChildrenMembers").AttachComponent<ValueField<bool>>();
-			//includeChildrenMembers.Value.Value = true;
 			includeChildrenSlots = Data.AddSlot("includeChildrenSlots").AttachComponent<ValueField<bool>>();
-			//includeChildrenSlots.Value.Value = true;
 			includeChildrenComponents = Data.AddSlot("includeChildrenSlots").AttachComponent<ValueField<bool>>();
-			//includeChildrenComponents.Value.Value = true;
 			ignoreNonPersistent = Data.AddSlot("ignoreNonPersistent").AttachComponent<ValueField<bool>>();
 			//ignoreNonPersistent.Value.Value = true;
 			ignoreSelfReferences = Data.AddSlot("ignoreSelfReferences").AttachComponent<ValueField<bool>>();
@@ -245,8 +251,6 @@ public class ReferenceFinderMod : ResoniteMod
 			ignoreNonWorkerRefs.Value.Value = true;
 			ignoreNestedRefs = Data.AddSlot("ignoreNestedRefs").AttachComponent<ValueField<bool>>();
 			ignoreNestedRefs.Value.Value = true;
-			//ignoreNonSlotRefs = Data.AddSlot("ignoreNonSlotRefs").AttachComponent<ValueField<bool>>();
-			//ignoreNonSlotRefs.Value.Value = true;
 			showDetails = Data.AddSlot("showDetails").AttachComponent<ValueField<bool>>();
 			showElementType = Data.AddSlot("showElementType").AttachComponent<ValueField<bool>>();
 			showLabels = Data.AddSlot("showLabels").AttachComponent<ValueField<bool>>();
@@ -292,8 +296,6 @@ public class ReferenceFinderMod : ResoniteMod
 			UI.HorizontalElementWithLabel("Ignore nested references:", 0.942f, () => UI.BooleanMemberEditor(ignoreNestedRefs.Value));
 
 			UI.HorizontalElementWithLabel("Ignore references which cannot be opened in inspectors:", 0.942f, () => UI.BooleanMemberEditor(ignoreNonWorkerRefs.Value));
-
-			//UI.HorizontalElementWithLabel("Ignore references which don't exist on slots:", 0.942f, () => UI.BooleanMemberEditor(ignoreNonSlotRefs.Value));
 
 			UI.HorizontalElementWithLabel("Ignore references which are children of the search element:", 0.942f, () => UI.BooleanMemberEditor(ignoreSelfReferences.Value));
 
@@ -512,7 +514,7 @@ public class ReferenceFinderMod : ResoniteMod
 				&& !(ignoreSelfReferences.Value && syncRef.IsChildOfElement(elementField.Reference.Target))
 				&& !(ignoreInspectors.Value && IsInInspector(syncRef))
 				&& !(ignoreNonWorkerRefs.Value && !IsOpenableInInspector(syncRef))
-				// ignore ISyncRefs which are children of other ISyncRefs? (avoids having two results which basically point to the same thing e.g. User field in UserRef sync object on VUO)
+				// ignore ISyncRefs which are children of other ISyncRefs (avoids having two results which basically point to the same thing e.g. User field on UserRef)
 				&& !(ignoreNestedRefs.Value && syncRef.Parent?.FindNearestParent<ISyncRef>()?.FilterWorldElement() != null)
 				// ignore reference proxies that are being grabbed by yourself
 				&& !(((SyncElement)syncRef).Slot.GetComponent<ReferenceProxy>() != null
@@ -536,10 +538,10 @@ public class ReferenceFinderMod : ResoniteMod
 		void FindReferences(HashSet<IWorldElement> elements, out bool stoppedEarly)
 		{
 			stoppedEarly = false;
-			var objectsDict = (Dictionary<RefID, IWorldElement>)objectsField.GetValue(WizardSlot.World.ReferenceController);
+			var objectsDict = (Dictionary<RefID, IWorldElement>?)objectsField?.GetValue(WizardSlot.World.ReferenceController);
 			if (objectsDict != null)
 			{
-				foreach (IWorldElement element in objectsDict.Values.ToList())
+				foreach (IWorldElement element in objectsDict.Values.ToArray())
 				{
 					if (element is ISyncRef syncRef)
 					{
@@ -679,12 +681,11 @@ public class ReferenceFinderMod : ResoniteMod
 
 	public static void Postfix_AddButtonToMember(object __instance)
 	{
-		var ima_nest = Traverse.Create(__instance)
-			.Field("<>4__this")
-			.GetValue();
-		var ima = (InspectorMemberActions)Traverse.Create(ima_nest)
-			.Field("<>4__this")
-			.GetValue();
+		var ima_nest = AccessTools.GetDeclaredFields(__instance.GetType()).FirstOrDefault(f => f.FieldType == nestedAsyncPressedType)?.GetValue(__instance);
+		if (ima_nest is null) return;
+
+		var ima = (InspectorMemberActions)AccessTools.GetDeclaredFields(ima_nest.GetType()).FirstOrDefault(f => f.FieldType == typeof(InspectorMemberActions))?.GetValue(ima_nest)!;
+		if (ima is null) return;
 
 		var elem = (IWorldElement)ima.Member.Target;
 		var src = ima.Slot.GetComponentInParents<SceneInspector>()?.Slot
@@ -695,13 +696,13 @@ public class ReferenceFinderMod : ResoniteMod
 		colorX? col = RadiantUI_Constants.Neutrals.LIGHT;
 		ContextMenu menu = ima.LocalUser.GetUserContextMenu();
 		ContextMenuItem item = menu.AddItem(in label, (Uri?)null, in col);
-		item.Button.LocalPressed += (_, _) => OpenWizardOnMember(item.Button, new ButtonEventData(), elem, src);
+		item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, src);
 	}
 
 	public static void OpenWizardOnMember(IButton button, ButtonEventData eventData, IWorldElement elem, Slot? src = null)
 	{
 		elem.World.RunSynchronously(delegate {
-			Slot r = elem.World.LocalUserSpace.AddSlot("Reference finder");
+			Slot r = elem.World.LocalUserSpace.AddSlot(WIZARD_TITLE);
 			var wiz = ReferenceFinderWizard.GetOrCreateWizard(r);
 
 			// positioning source slot
@@ -733,7 +734,7 @@ public class ReferenceFinderMod : ResoniteMod
 					LocaleString label = "Find references".AsLocaleKey();
 					colorX? col = RadiantUI_Constants.Neutrals.LIGHT;
 					ContextMenuItem item = cm.AddItem(in label, (Uri?)null, in col);
-					item.Button.LocalPressed += (_, _) => OpenWizardOnMember(item.Button, new ButtonEventData(), elem);
+					item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem);
 				});
 				return false;
 			}
