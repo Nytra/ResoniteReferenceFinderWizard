@@ -114,6 +114,8 @@ public class ReferenceFinderMod : ResoniteMod
 
 		bool performingOperations = false;
 
+		public bool IgnoreHeldReferenceProxies = false;
+
 		readonly Text statusText;
 		void UpdateStatusText(string info)
 		{
@@ -518,13 +520,10 @@ public class ReferenceFinderMod : ResoniteMod
 				// ignore ISyncRefs which are children of other ISyncRefs (avoids having two results which basically point to the same thing e.g. User field on UserRef)
 				&& !(ignoreNestedRefs.Value && syncRef.Parent?.FindNearestParent<ISyncRef>()?.FilterWorldElement() != null)
 				// ignore reference proxies that are being grabbed by yourself
-				&& !(syncRefSlot?.GetComponent<ReferenceProxy>() != null
+				&& !(IgnoreHeldReferenceProxies && syncRefSlot?.GetComponent<ReferenceProxy>() != null
 					&& syncRefSlot?.GetComponentInParents<Grabber>(g => g.Slot.ActiveUser == syncRef.World.LocalUser) != null)
 				// ignore parent field on slots (inspector shows this anyway)
 				&& syncRef.Parent is not Slot
-
-				// stuff in the UndoManager hierarchy is sorta covered by the ignoreNonPersistent option anyway
-				//&& syncRefSlot?.GetComponentInParents<UndoManager>() == null
 			) {
 				results.References.Add(syncRef);
 				if (showDetails.Value)
@@ -707,7 +706,7 @@ public class ReferenceFinderMod : ResoniteMod
 		item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, src, menu);
 	}
 
-	public static void OpenWizardOnMember(IButton button, ButtonEventData eventData, IWorldElement elem, Slot? src = null, ContextMenu? contextMenu = null)
+	public static void OpenWizardOnMember(IButton button, ButtonEventData eventData, IWorldElement elem, Slot? src = null, ContextMenu? contextMenu = null, bool ignoreHeldRefProxy = false)
 	{
 		contextMenu?.Close();
 		elem.World.RunSynchronously(delegate {
@@ -727,7 +726,9 @@ public class ReferenceFinderMod : ResoniteMod
 			}
 
 			wiz.elementField.Reference.Target = elem;
+			wiz.IgnoreHeldReferenceProxies = ignoreHeldRefProxy;
 			wiz.SearchPressed(button, eventData);
+			wiz.IgnoreHeldReferenceProxies = false;
 		});
 	}
 
@@ -748,7 +749,7 @@ public class ReferenceFinderMod : ResoniteMod
 					LocaleString label = "Find references".AsLocaleKey();
 					colorX? col = RadiantUI_Constants.Neutrals.LIGHT;
 					ContextMenuItem item = cm.AddItem(in label, (Uri?)null, in col);
-					item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, null, cm);
+					item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, null, cm, true);
 				});
 				return false;
 			}
