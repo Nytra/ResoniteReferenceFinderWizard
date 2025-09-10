@@ -696,11 +696,12 @@ public class ReferenceFinderMod : ResoniteMod
 		colorX? col = RadiantUI_Constants.Neutrals.LIGHT;
 		ContextMenu menu = ima.LocalUser.GetUserContextMenu();
 		ContextMenuItem item = menu.AddItem(in label, (Uri?)null, in col);
-		item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, src);
+		item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, src, menu);
 	}
 
-	public static void OpenWizardOnMember(IButton button, ButtonEventData eventData, IWorldElement elem, Slot? src = null)
+	public static void OpenWizardOnMember(IButton button, ButtonEventData eventData, IWorldElement elem, Slot? src = null, ContextMenu? contextMenu = null)
 	{
+		contextMenu?.Close();
 		elem.World.RunSynchronously(delegate {
 			Slot r = elem.World.LocalUserSpace.AddSlot(WIZARD_TITLE);
 			var wiz = ReferenceFinderWizard.GetOrCreateWizard(r);
@@ -734,7 +735,7 @@ public class ReferenceFinderMod : ResoniteMod
 					LocaleString label = "Find references".AsLocaleKey();
 					colorX? col = RadiantUI_Constants.Neutrals.LIGHT;
 					ContextMenuItem item = cm.AddItem(in label, (Uri?)null, in col);
-					item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem);
+					item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, null, cm);
 				});
 				return false;
 			}

@@ -52,10 +52,10 @@
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Message Text="Copying $(TargetFileName) to $(ResonitePath)/rml_mods" Importance="High" />
-		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ResonitePath)/rml_mods" />
 		<Message Condition="'$(Configuration)' == 'Debug'" Text="Debug build, copying $(TargetFileName) to $(ResonitePath)/rml_mods/HotReloadMods" Importance="High" />
 		<Copy Condition="'$(Configuration)' == 'Debug'" SourceFiles="$(TargetPath)" DestinationFolder="$(ResonitePath)/rml_mods/HotReloadMods" />
+		<Message Text="Copying $(TargetFileName) to $(ResonitePath)/rml_mods" Importance="High" />
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ResonitePath)/rml_mods" />
 	</Target>
 
 </Project>
