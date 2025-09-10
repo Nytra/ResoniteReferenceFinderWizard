@@ -684,8 +684,8 @@ public class ReferenceFinderMod : ResoniteMod
 		var ima_nest = AccessTools.GetDeclaredFields(__instance.GetType()).FirstOrDefault(f => f.FieldType == nestedAsyncPressedType)?.GetValue(__instance);
 		if (ima_nest is null) return;
 
-		var ima = (InspectorMemberActions)AccessTools.GetDeclaredFields(ima_nest.GetType()).FirstOrDefault(f => f.FieldType == typeof(InspectorMemberActions))?.GetValue(ima_nest)!;
-		if (ima is null) return;
+		var imaObj = AccessTools.GetDeclaredFields(ima_nest.GetType()).FirstOrDefault(f => f.FieldType == typeof(InspectorMemberActions))?.GetValue(ima_nest);
+		if (imaObj is not InspectorMemberActions ima) return;
 
 		var elem = (IWorldElement)ima.Member.Target;
 		var src = ima.Slot.GetComponentInParents<SceneInspector>()?.Slot
