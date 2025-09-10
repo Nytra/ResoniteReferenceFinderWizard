@@ -17,7 +17,7 @@ public class ReferenceFinderMod : ResoniteMod
 {
 	public override string Name => "Reference Finder Wizard";
 	public override string Author => "Nytra, yosh";
-	public override string Version => "1.1.1";
+	public override string Version => "1.1.2";
 	public override string Link => "https://github.com/Nytra/ResoniteReferenceFinderWizard";
 
 	const string WIZARD_TITLE = "Reference Finder Wizard (Mod)";
@@ -503,6 +503,7 @@ public class ReferenceFinderMod : ResoniteMod
 
 		void ProcessReference(HashSet<IWorldElement> elements, ISyncRef syncRef)
 		{
+			var syncRefSlot = syncRef.FindNearestParent<Slot>();
 			if (syncRef.FilterWorldElement() != null
 				&& syncRef.Target?.FilterWorldElement() != null
 				&& elements.Contains(syncRef.Target)
@@ -517,11 +518,11 @@ public class ReferenceFinderMod : ResoniteMod
 				// ignore ISyncRefs which are children of other ISyncRefs (avoids having two results which basically point to the same thing e.g. User field on UserRef)
 				&& !(ignoreNestedRefs.Value && syncRef.Parent?.FindNearestParent<ISyncRef>()?.FilterWorldElement() != null)
 				// ignore reference proxies that are being grabbed by yourself
-				&& !(((SyncElement)syncRef).Slot.GetComponent<ReferenceProxy>() != null
-					&& ((SyncElement)syncRef).Slot.GetComponentInParents<Grabber>(g => g.Slot.ActiveUser == syncRef.World.LocalUser) != null)
+				&& !(syncRefSlot?.GetComponent<ReferenceProxy>() != null
+					&& syncRefSlot?.GetComponentInParents<Grabber>(g => g.Slot.ActiveUser == syncRef.World.LocalUser) != null)
 				// ignore parent field on slots (inspector shows this anyway)
 				&& syncRef.Parent is not Slot
-				&& ((SyncElement)syncRef).Slot.GetComponentInParents<UndoManager>() == null
+				&& syncRefSlot?.GetComponentInParents<UndoManager>() == null
 			) {
 				results.References.Add(syncRef);
 				if (showDetails.Value)
