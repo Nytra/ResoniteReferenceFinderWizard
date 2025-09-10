@@ -12,6 +12,15 @@ A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoade
 3. Start the game. If you want to verify that the mod is working you can check your Resonite logs.
 
 ## Usage
+
+When you have a Dev Tool equipped and are holding a reference, pressing secondary will give you the option to find references to whatever is held
+
+---
+
+Clicking the burger menu next to any field in the inspector will have a new option to find references to the field
+
+---
+
 The wizard can be found in the DevTool's 'Create New' menu under Editors/Reference Finder Wizard (Mod). <br>
 
 You can drop any world element into the labeled field to search for anything in the world that references it. <br>
