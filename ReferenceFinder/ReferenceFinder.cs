@@ -522,7 +522,9 @@ public class ReferenceFinderMod : ResoniteMod
 					&& syncRefSlot?.GetComponentInParents<Grabber>(g => g.Slot.ActiveUser == syncRef.World.LocalUser) != null)
 				// ignore parent field on slots (inspector shows this anyway)
 				&& syncRef.Parent is not Slot
-				&& syncRefSlot?.GetComponentInParents<UndoManager>() == null
+
+				// stuff in the UndoManager hierarchy is sorta covered by the ignoreNonPersistent option anyway
+				//&& syncRefSlot?.GetComponentInParents<UndoManager>() == null
 			) {
 				results.References.Add(syncRef);
 				if (showDetails.Value)
