@@ -2,7 +2,6 @@ using Elements.Assets;
 using Elements.Core;
 using FrooxEngine;
 using FrooxEngine.UIX;
-using FrooxEngine.Undo;
 using HarmonyLib;
 using ResoniteModLoader;
 using System.Reflection;
