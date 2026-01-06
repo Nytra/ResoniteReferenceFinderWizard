@@ -20,6 +20,8 @@
 
 		<ResonitePath Condition="'$(OS)' != 'Windows_NT' and Exists('$(HOME)/.local/share/Steam/steamapps/common/Resonite')">$(HOME)/.local/share/Steam/steamapps/common/Resonite</ResonitePath>
 
+		<ResonitePath Condition="'$(OS)' != 'Windows_NT' and Exists('/media/linux_data/Steam/steamapps/common/Resonite/')">/media/linux_data/Steam/steamapps/common/Resonite/</ResonitePath>
+
 		<ResonitePath Condition="'$(ResonitePath)' == ''">G:\SteamLibrary\steamapps\common\Resonite</ResonitePath>
 	</PropertyGroup>
 
