@@ -6,6 +6,8 @@ using HarmonyLib;
 using ResoniteModLoader;
 using System.Reflection;
 
+using ContextMenuHookLib;
+
 #if DEBUG
 using ResoniteHotReloadLib;
 #endif
@@ -23,6 +25,10 @@ public class ReferenceFinderMod : ResoniteMod
 
 	private static Harmony harmony = new Harmony("owo.Nytra.ReferenceFinderWizard");
 	private static Type? nestedAsyncPressedType;
+
+	private static LocaleString menuItemLabel = "Find references".AsLocaleKey();
+	private static colorX menuItemColor = RadiantUI_Constants.Hero.RED;
+	private static Uri menuItemIcon = OfficialAssets.Graphics.Icons.Dash.MagnifyingGlass;
 
 	public override void OnEngineInit()
 	{
@@ -693,15 +699,13 @@ public class ReferenceFinderMod : ResoniteMod
 			?? ima.Slot.GetComponentInParents<UserInspector>()?.Slot
 			?? ima.Slot.GetComponentInParents<GenericUIContainer>()?.Slot;
 
-		LocaleString label = "Find references".AsLocaleKey();
-		colorX? col = RadiantUI_Constants.Neutrals.LIGHT;
 		ContextMenu menu = ima.LocalUser.GetUserContextMenu();
 		if (menu is null)
 		{
 			Error($"Context menu is null in InspectorMemberActions patch!");
 			return;
 		}
-		ContextMenuItem item = menu.AddItem(in label, (Uri?)null, in col);
+		ContextMenuItem item = menu.AddItem(in menuItemLabel, menuItemIcon, menuItemColor);
 		item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, src, menu);
 	}
 
@@ -731,28 +735,14 @@ public class ReferenceFinderMod : ResoniteMod
 		});
 	}
 
-	[HarmonyPatch(typeof(DevTool), nameof(DevTool.OnSecondaryPress))]
-	public static class Patch_DevTool
+	[ContextMenuHook(typeof(DevTool), nameof(DevTool.OnSecondaryPress))]
+	public static IEnumerable<MenuItem> DevToolSecondaryItem(DevTool __instance)
 	{
-		static bool Prefix(DevTool __instance)
-		{
-			IWorldElement elem = __instance.GetGrabbedReference();
-			if (elem != null) {
-				__instance.StartTask(async delegate {
-					var cm = await __instance.LocalUser.OpenContextMenu(__instance, __instance.Slot);
-					if (cm is null)
-					{
-						Error("Context menu is null in Dev Tool patch!");
-						return;
-					}
-					LocaleString label = "Find references".AsLocaleKey();
-					colorX? col = RadiantUI_Constants.Neutrals.LIGHT;
-					ContextMenuItem item = cm.AddItem(in label, (Uri?)null, in col);
-					item.Button.LocalPressed += (btn, data) => OpenWizardOnMember(btn, data, elem, null, cm, true);
-				});
-				return false;
-			}
-			return true;
+		IWorldElement elem = __instance.GetGrabbedReference();
+		if (elem != null) {
+			var iinfo = new MenuItem(__instance, menuItemLabel, menuItemIcon, menuItemColor);
+			iinfo.LocalPressed.Add((btn, data, cm, _) => OpenWizardOnMember(btn, data, elem, null, cm, true));
+			yield return iinfo;
 		}
 	}
 }

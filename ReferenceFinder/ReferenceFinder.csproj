@@ -43,6 +43,9 @@
 		<Reference Include="HarmonyLib">
 			<HintPath>$(ResonitePath)/rml_libs/0Harmony.dll</HintPath>
 		</Reference>
+		<Reference Include="ContextMenuHookLib">
+			<HintPath>$(ResonitePath)/rml_mods/ContextMenuHookLib.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
