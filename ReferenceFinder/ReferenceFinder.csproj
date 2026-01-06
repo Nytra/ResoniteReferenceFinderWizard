@@ -4,7 +4,7 @@
 		<Version>1.2.0</Version>
 		<ProductName>ReferenceFinderWizard</ProductName>
 		<AssemblyName>ReferenceFinderWizard</AssemblyName>
-		<Copyright>Copyright © Nytra 2025</Copyright>
+		<Copyright>Copyright © Nytra 2026</Copyright>
 		<Authors>Nytra, yosh</Authors>
 		<OutputType>Library</OutputType>
 		<TargetFramework>net10.0</TargetFramework>
