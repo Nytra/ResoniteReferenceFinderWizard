@@ -18,7 +18,7 @@ public class ReferenceFinderMod : ResoniteMod
 {
 	public override string Name => "Reference Finder Wizard";
 	public override string Author => "Nytra, yosh";
-	public override string Version => "1.1.3";
+	public override string Version => "1.2.0";
 	public override string Link => "https://github.com/Nytra/ResoniteReferenceFinderWizard";
 
 	const string WIZARD_TITLE = "Reference Finder Wizard (Mod)";
@@ -591,7 +591,7 @@ public class ReferenceFinderMod : ResoniteMod
 				text += GetElementText(element, showElementType.Value, showLabels.Value) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(element))} is referenced by:\n";
 				foreach (ISyncRef syncRef in referenceMap[element])
 				{
-					text += "  • " + GetElementText(syncRef, showElementType.Value, showLabels.Value) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(syncRef))}\n";
+					text += "  > " + GetElementText(syncRef, showElementType.Value, showLabels.Value) + $" {GetSlotOrUserPathText(GetNearestParentSlotOrUser(syncRef))}\n";
 				}
 				text += "\n";
 			}
